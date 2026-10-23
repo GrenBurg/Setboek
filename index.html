@@ -250,9 +250,8 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
 .infobtn { flex: none; width: 30px; height: 30px; border: 1.5px solid var(--ink); border-radius: 50%; background: transparent; color: var(--ink); font: italic 700 17px/1 Georgia, "Times New Roman", serif; display: grid; place-items: center; padding: 0; }
 .infobtn:active { background: var(--ink); color: var(--bg); }
 .plate { background: var(--plate-bg); border: 1px solid var(--plate-ink); outline: 1px solid var(--line); outline-offset: 3px; margin: 4px; padding: 8px 8px 6px; }
-.plate svg { width: 100%; height: auto; display: block; max-height: 44vh; }
+.plate img { width: 100%; height: auto; max-height: 42vh; object-fit: contain; display: block; }
 .platecap { font: italic 13px var(--f-body); color: var(--plate-ink); text-align: center; margin-top: 2px; }
-.figname { font-family: var(--f-display); font-size: 20px; font-weight: 600; }
 .figsteps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 5px; font-size: 14px; }
 </style>
 
@@ -954,203 +953,27 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       if (e.target.closest('[data-reset]')) { state.logs = {}; save(); closeSheet(); render(); toast('Voortgang gewist'); }
     });
   }
-  function closeSheet() { try { FIG.stop(); } catch (e) {} $('#overlay').innerHTML = ''; }
+  function closeSheet() { $('#overlay').innerHTML = ''; }
   let tt = null;
   function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 2400); }
 
-  // ================= ABBILDUNGEN (geanimeerde figuren in de stijl van de Sportvorschrift) =================
+  // ================= ABBILDUNGEN (originele figuren uit de Sportvorschrift für das Heer, 1938) =================
   const FIG = (() => {
-    const L = { torso: 52, ua: 29, fa: 27, th: 42, sh: 40, foot: 13 };
-    const G = 185; // grondlijn
-    const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
-    const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
-    const mul = (a, k) => [a[0] * k, a[1] * k];
-    const len = a => Math.hypot(a[0], a[1]);
-    const dirA = ang => [Math.cos(ang), Math.sin(ang)];
-    const rad = d => d * Math.PI / 180;
-    function ik(A, T, l1, l2, s) {
-      const d0 = sub(T, A); let d = len(d0);
-      const a = Math.atan2(d0[1], d0[0]);
-      d = Math.max(Math.abs(l1 - l2) + 0.5, Math.min(l1 + l2 - 0.2, d));
-      const c = Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)));
-      const al = Math.acos(c);
-      const J = add(A, mul(dirA(a + s * al), l1));
-      const E = add(A, mul(dirA(a), d));
-      return [J, E];
-    }
-    const f = n => n.toFixed(1);
-    function capsule(p1, p2, r1, r2) {
-      const v = sub(p2, p1), l = len(v) || 0.01, n = [-v[1] / l, v[0] / l];
-      const a1 = add(p1, mul(n, r1)), b1 = add(p2, mul(n, r2)), b2 = sub(p2, mul(n, r2)), a2 = sub(p1, mul(n, r1));
-      return `M${f(a1[0])},${f(a1[1])} L${f(b1[0])},${f(b1[1])} A${f(r2)},${f(r2)} 0 0 1 ${f(b2[0])},${f(b2[1])} L${f(a2[0])},${f(a2[1])} A${f(r1)},${f(r1)} 0 0 1 ${f(a1[0])},${f(a1[1])} Z`;
-    }
-    function hull(pts) {
-      pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-      const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-      const lo = [], up = [];
-      for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
-      for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
-      return lo.slice(0, -1).concat(up.slice(0, -1));
-    }
-    const poly = pts => 'M' + pts.map(p => f(p[0]) + ',' + f(p[1])).join(' L') + ' Z';
-    const S = 'stroke="var(--plate-ink)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"';
-    const W = `fill="var(--plate-bg)" ${S}`;
-    const K = `fill="var(--plate-ink)" ${S}`;
-
-    // Ledemaat als doorlopende omlijnde vorm: eerst dikke inktlijn, dan papierkleur erover. Geen naden bij de gewrichten.
-    function seg(pts, ws) {
-      let o = '', i = '';
-      for (let k = 0; k < pts.length - 1; k++) {
-        const d = `M${f(pts[k][0])},${f(pts[k][1])} L${f(pts[k + 1][0])},${f(pts[k + 1][1])}`;
-        o += `<path d="${d}" stroke="var(--plate-ink)" stroke-width="${ws[k] + 5}" stroke-linecap="round" fill="none"/>`;
-        i += `<path d="${d}" stroke="var(--plate-bg)" stroke-width="${ws[k]}" stroke-linecap="round" fill="none"/>`;
-      }
-      return o + i;
-    }
-    function limbArm(sh, hand, s) {
-      const [E, H] = ik(sh, hand, L.ua, L.fa, s);
-      const v = sub(H, E), u = mul(v, 1 / (len(v) || 1)), F = add(H, mul(u, 4));
-      return { E, H, d: seg([sh, E, H, F], [9.5, 8, 8.5]) + `<path d="M${f(E[0])},${f(E[1])} m-1,-2 q2,1 2,4" fill="none" stroke="var(--plate-ink)" stroke-width="1.1"/>` };
-    }
-    function limbLeg(hip, ank, s, footAng) {
-      const [Kn, A] = ik(hip, ank, L.th, L.sh, s);
-      const T = add(A, mul(dirA(rad(footAng)), L.foot));
-      const kv = sub(A, Kn), ku = mul(kv, 1 / (len(kv) || 1)), kn = [-ku[1], ku[0]];
-      const calf = add(add(Kn, mul(ku, 12)), mul(kn, 2));
-      return { K: Kn, A, d: seg([hip, Kn, A, T], [13, 9.5, 6.5]) + `<path d="M${f(calf[0])},${f(calf[1])} l${f(ku[0] * 10)},${f(ku[1] * 10)}" stroke="var(--plate-ink)" stroke-width="1.1" fill="none"/>` };
-    }
-    function head(c, ang, front) {
-      if (front) {
-        return `<g transform="translate(${f(c[0])},${f(c[1])})"><ellipse rx="9.5" ry="11.5" ${W}/><path d="M-9.6,-1 C-11,-15 11,-15 9.6,-1 C6,-8 -6,-8 -9.6,-1 Z" ${K}/><path d="M-3,4 Q0,6 3,4" fill="none" ${S} stroke-width="1.6"/></g>`;
-      }
-      return `<g transform="translate(${f(c[0])},${f(c[1])}) rotate(${f(ang)})"><ellipse rx="10" ry="11.5" ${W}/>
-        <path d="M-10,1 C-12,-14 4,-17 9.5,-6 C3,-9 -3,-8 -6,2 Z" ${K}/>
-        <path d="M9.3,-1.5 L13,3.5 L9.4,4.6" fill="var(--plate-bg)" ${S} stroke-width="1.8"/>
-        <path d="M-3,-1 a2.4,3 0 1 0 0.1,0" fill="none" ${S} stroke-width="1.5"/></g>`;
-    }
-    function shorts(hip, legs, front) {
-      const pts = [];
-      for (const lg of legs) {
-        const v = sub(lg.K, lg.hip), l = len(v), u = mul(v, 1 / l), n = [-u[1], u[0]];
-        const m = add(lg.hip, mul(u, l * 0.42));
-        pts.push(add(m, mul(n, 7.8)), sub(m, mul(n, 7.8)));
-      }
-      const r = front ? 14 : 11;
-      pts.push(add(hip.c, [-r, -6]), add(hip.c, [r, -6]), add(hip.c, [-r, 2]), add(hip.c, [r, 2]));
-      if (hip.up) { const u = hip.up; pts.push(add(hip.c, mul(u, 8)), add(add(hip.c, mul(u, 8)), [front ? -13 : -9, 0]), add(add(hip.c, mul(u, 8)), [front ? 13 : 9, 0])); }
-      const H = hull(pts);
-      const cx = H.reduce((a, p) => a + p[0], 0) / H.length, cy = H.reduce((a, p) => a + p[1], 0) / H.length;
-      return `<path d="${poly(H)}" ${K}/><path d="M${f(cx - 6)},${f(cy - 3)} q4,-3 7,1 M${f(cx - 1)},${f(cy + 4)} q3,-2 6,1 M${f(cx - 8)},${f(cy + 3)} q2,-1 3,1" fill="none" stroke="var(--plate-bg)" stroke-width="1.3" stroke-linecap="round"/>`;
-    }
-    function bag(c, ang, w = 52, h = 26) {
-      return `<g transform="translate(${f(c[0])},${f(c[1])}) rotate(${f(ang || 0)})"><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${h / 2}" ${W}/>
-        <path d="M${-w / 2 + 9},${-h / 2 + 3} v${h - 6} M${w / 2 - 9},${-h / 2 + 3} v${h - 6}" fill="none" ${S} stroke-width="1.6"/>
-        <path d="M${-w / 2 + 14},-3 l6,0 M-4,3 l8,0 M${w / 2 - 20},-4 l5,0" fill="none" ${S} stroke-width="1.2"/>
-        <path d="M-7,${-h / 2} q7,-6 14,0" fill="none" ${S} stroke-width="1.8"/></g>`;
-    }
-    function pack(sh, hip) {
-      const v = sub(sh, hip), l = len(v), u = mul(v, 1 / l), n = [u[1], -u[0]]; // n = naar achteren (links) bij rechtsgericht
-      const back = n[0] < 0 ? n : mul(n, -1);
-      const a = add(add(hip, mul(u, l * 0.3)), mul(back, 17)), b = add(add(hip, mul(u, l * 0.95)), mul(back, 17));
-      const fl = add(add(hip, mul(u, l * 0.62)), mul(back, 30));
-      const pk = add(add(a, mul(u, 6)), mul(back, 10));
-      return seg([a, b], [28]) + `<path d="M${f(b[0] + back[0] * 13)},${f(b[1] + 2)} Q${f(fl[0] - 2)},${f(fl[1] - 22)} ${f(fl[0] - 3)},${f(fl[1] - 4)}" fill="none" ${S} stroke-width="1.8"/>` + seg([pk, add(pk, mul(u, 12))], [7]) + `<path d="M${f(sh[0])},${f(sh[1] + 2)} L${f(a[0] + back[0] * -6)},${f(a[1])}" stroke="var(--plate-ink)" stroke-width="2.2"/>`;
-    }
-    function draw(p) {
-      const front = p.v === 'front';
-      const hip = p.hip, sh = p.sh;
-      const up = sub(sh, hip), ul = len(up), uu = mul(up, 1 / ul), nn = [-uu[1], uu[0]];
-      let out = '';
-      if (p.bar) out += `<path d="M${p.bar[0] - 70},${p.bar[1]} H${p.bar[0] + 70}" stroke="var(--plate-ink)" stroke-width="5" stroke-linecap="round"/><path d="M${p.bar[0] - 70},${p.bar[1]} v-16 M${p.bar[0] + 70},${p.bar[1]} v-16" stroke="var(--plate-ink)" stroke-width="3"/>`;
-      else out += `<path d="M8,${G} H232" stroke="var(--plate-ink)" stroke-width="1.6"/><path d="${Array.from({ length: 23 }, (_, i) => `M${12 + i * 10},${G + 1} l-6,7`).join(' ')}" stroke="var(--plate-ink)" stroke-width="1"/>`;
-      let shN, shF, hpN, hpF;
-      if (front) {
-        shN = add(sh, mul(nn, -16)); shF = add(sh, mul(nn, 16));
-        hpN = add(hip, mul(nn, -8)); hpF = add(hip, mul(nn, 8));
-      } else { shN = sh; shF = add(sh, [-2, -1]); hpN = hip; hpF = add(hip, [-1.5, -1]); }
-      const legN = limbLeg(hpN, p.fn, p.kN ?? (front ? 1 : -1), p.ftN ?? 0); legN.hip = hpN;
-      const legF = limbLeg(hpF, p.ff, p.kF ?? (front ? -1 : -1), p.ftF ?? 0); legF.hip = hpF;
-      const armN = limbArm(shN, p.hn, p.eN ?? (front ? -1 : 1));
-      const armF = limbArm(shF, p.hf, p.eF ?? (front ? 1 : 1));
-      const torso = front
-        ? `<path d="${poly([add(sh, mul(nn, -18)), add(sh, mul(nn, 18)), add(hip, mul(nn, 13)), add(hip, mul(nn, -13))])}" ${W}/><path d="M${f(sh[0])},${f(sh[1] + 10)} v12 M${f(sh[0] - 8)},${f(sh[1] + 8)} q8,5 16,0" fill="none" ${S} stroke-width="1.4"/>`
-        : seg([hip, add(hip, mul(uu, ul * 0.55)), sh], [21, 24]) + `<path d="M${f(add(sh, mul(uu, -12))[0] + nn[0] * 6)},${f(add(sh, mul(uu, -12))[1] + nn[1] * 6)} q${f(-uu[0] * 6 + nn[0] * 2)},${f(-uu[1] * 6 + nn[1] * 2)} ${f(-uu[0] * 12)},${f(-uu[1] * 12)}" fill="none" stroke="var(--plate-ink)" stroke-width="1.2"/>`;
-      const hcen = add(sh, mul(dirA(rad(p.hd ?? -90)), 20));
-      const hand = () => '';
-      if (p.pack && !front) out += pack(sh, hip);
-      if (p.bag && p.bagBehind) out += bag(p.bag, p.bagA);
-      if (front) {
-        out += `${legF.d}${legN.d}` + torso + shorts({ c: hip, up: mul(uu, -1) }, [legN, legF], true);
-        out += `${armF.d}${hand(armF.H)}${armN.d}${hand(armN.H)}` + head(hcen, 0, true);
-      } else {
-        out += `${armF.d}${hand(armF.H)}${legF.d}`;
-        out += torso + `${legN.d}` + shorts({ c: hip }, [legN, legF], false);
-        if (p.bag && p.bagMid) out += bag(p.bag, p.bagA);
-        out += head(hcen, (p.hd ?? -90) + 90, false);
-        if (p.bag && !p.bagBehind && !p.bagMid && p.bagFront !== false) out += bag(p.bag, p.bagA);
-        out += `${armN.d}${hand(armN.H)}`;
-        if (p.bag && !p.bagBehind && !p.bagMid && p.bagFront === false) out += bag(p.bag, p.bagA);
-      }
-      return out;
-    }
-
-    // ---- houdingen ----
-    const STAND = { v: 'side', hip: [120, 99], sh: [120, 47], hd: -90, hn: [123, 104], hf: [117, 104], fn: [123, 180], ff: [117, 180] };
-    const P = (o) => Object.assign({}, STAND, o);
-    const plank = (deg, ank = [34, 179]) => { const t = rad(deg); const shp = [ank[0] + Math.cos(t) * 134, ank[1] - Math.sin(t) * 134]; const hp = [ank[0] + Math.cos(t) * 82, ank[1] - Math.sin(t) * 82]; return { shp, hp }; };
-    const pu1 = plank(25), pu2 = plank(9);
-    const walk = (ph, pack) => {
-      const s = Math.sin(ph), c = Math.cos(ph);
-      return P({ hip: [120, 100 + Math.abs(c) * 2], sh: [124, 48 + Math.abs(c) * 2], hd: -86,
-        fn: [120 + s * 26, 180 - Math.max(0, c) * 8], ff: [120 - s * 26, 180 - Math.max(0, -c) * 8],
-        hn: [124 - s * 20, 100 - Math.abs(s) * 3], hf: [124 + s * 20, 100 - Math.abs(s) * 3], eN: -1, eF: -1, pack });
-    };
-    const runP = (ph) => {
-      const s = Math.sin(ph), c = Math.cos(ph);
-      return P({ hip: [118, 103 - Math.abs(s) * 4], sh: [130, 53 - Math.abs(s) * 4], hd: -80,
-        fn: [118 + s * 34, 176 - Math.max(0, -s) * 22], ff: [118 - s * 34, 176 - Math.max(0, s) * 22],
-        hn: [136 - s * 22, 92 - Math.max(0, -s) * 18], hf: [136 + s * 22, 92 - Math.max(0, s) * 18], eN: -1, eF: -1,
-        kN: -1, kF: -1 });
-    };
     const A = {
-      squat: { t: [1.1, 1.1], k: [P({ hn: [124, 103], hf: [118, 103] }), P({ hip: [96, 140], sh: [126, 98], hd: -70, hn: [178, 92], hf: [174, 94], fn: [123, 180], ff: [117, 180] })],
-        cap: 'Kniebeugen', txt: ['Voeten op heupbreedte, hielen blijven aan de grond.', 'Heupen naar achteren en omlaag tot je dijen horizontaal zijn, armen naar voren.', 'Rug recht, knieën wijzen in de richting van je tenen.'] },
-      pushup: { t: [1, 1], k: [P({ hip: pu1.hp, sh: pu1.shp, hd: -8, hn: [152, 180], hf: [148, 180], fn: [34, 179], ff: [30, 179], ftN: -60, ftF: -60, eN: 1, eF: 1 }),
-        P({ hip: pu2.hp, sh: pu2.shp, hd: 0, hn: [152, 180], hf: [148, 180], fn: [34, 179], ff: [30, 179], ftN: -60, ftF: -60, eN: 1, eF: 1 })],
-        cap: 'Liegestütze', txt: ['Handen iets breder dan je schouders, lichaam één rechte lijn van hielen tot hoofd.', 'Zak tot je borst bijna de grond raakt, ellebogen schuin naar achteren.', 'Duw op tot je armen gestrekt zijn. Heupen niet laten hangen.'] },
-      lunge: { t: [1.1, 1.1], k: [P({}), P({ hip: [112, 132], sh: [114, 80], hd: -88, fn: [165, 180], ff: [62, 178], ftF: -40, kN: -1, kF: -1, hn: [116, 136], hf: [110, 136] })],
-        cap: 'Ausfallschritte', txt: ['Grote stap naar voren, bovenlichaam rechtop.', 'Zak tot je achterste knie net boven de grond is, voorste knie boven je enkel.', 'Duw terug en wissel van been (L+R).'], ref: 'vgl. Abb. 52' },
-      star: { t: [.45, .45], k: [{ v: 'front', hip: [120, 99], sh: [120, 47], fn: [112, 180], ff: [128, 180], hn: [100, 104], hf: [140, 104] },
-        { v: 'front', hip: [120, 92], sh: [120, 40], fn: [92, 174], ff: [148, 174], hn: [86, 2], hf: [154, 2] }],
-        cap: 'Hampelmann', txt: ['Spring tegelijk benen uit elkaar en armen boven je hoofd.', 'Spring terug: benen samen, armen langs je lichaam.', 'Licht op de voorvoeten blijven.'] },
-      plank: { t: [1.6, 1.6], k: [P({ hip: plank(10).hp, sh: plank(10).shp, hd: 0, hn: [190, 181], hf: [186, 181], fn: [34, 179], ff: [30, 179], ftN: -60, ftF: -60, eN: -1, eF: -1 }),
-        P({ hip: add(plank(10).hp, [0, -2]), sh: plank(10).shp, hd: 0, hn: [190, 181], hf: [186, 181], fn: [34, 179], ff: [30, 179], ftN: -60, ftF: -60, eN: -1, eF: -1 })],
-        cap: 'Unterarmstütz', txt: ['Op je onderarmen, ellebogen recht onder je schouders.', 'Lichaam één rechte lijn, buik en billen aangespannen.', 'Houd de aangegeven tijd vast en blijf rustig ademen.'] },
-      side: { t: [1.2, 1.2], k: [{ v: 'front', hip: [118, 150], sh: [158, 128], fn: [42, 180], ff: [42, 176], kN: 1, kF: 1, hn: [168, 181], hf: [124, 150], eN: 1, eF: 1 },
-        { v: 'front', hip: [118, 146], sh: [158, 126], fn: [42, 180], ff: [42, 176], kN: 1, kF: 1, hn: [168, 181], hf: [150, 70], eN: 1, eF: 1 }],
-        cap: 'Seitstütz', txt: ['Op één onderarm, elleboog onder je schouder, voeten op elkaar.', 'Heupen omhoog tot je lichaam een rechte lijn is.', 'Houd vast. Bovenste arm mag omhoog voor extra spanning.'] },
-      superman: { t: [1, 1], k: [P({ hip: [118, 171], sh: [166, 170], hd: 0, hn: [222, 178], hf: [218, 179], fn: [38, 178], ff: [36, 179], ftN: 10, ftF: 10, eN: -1, eF: -1, kN: 1, kF: 1 }),
-        P({ hip: [118, 173], sh: [164, 158], hd: -12, hn: [218, 148], hf: [214, 151], fn: [42, 160], ff: [40, 162], ftN: 0, ftF: 0, eN: -1, eF: -1, kN: 1, kF: 1 })],
-        cap: 'Superman', txt: ['Op je buik, armen gestrekt naar voren.', 'Til tegelijk armen, borst en benen een stukje op.', 'Kort vasthouden, rustig laten zakken. Kijk naar de grond.'], ref: 'vgl. Abb. 33' },
-      climber: { t: [.4, .4], k: [P({ hip: pu1.hp, sh: pu1.shp, hd: -8, hn: [152, 180], hf: [148, 180], fn: [118, 168], ff: [32, 179], ftN: 0, ftF: -60, eN: 1, eF: 1 }),
-        P({ hip: pu1.hp, sh: pu1.shp, hd: -8, hn: [152, 180], hf: [148, 180], fn: [34, 179], ff: [116, 168], ftN: -60, ftF: 0, eN: 1, eF: 1 })],
-        cap: 'Bergsteiger', txt: ['Begin in de opdrukhouding, handen onder je schouders.', 'Trek afwisselend snel een knie naar je borst.', 'Heupen laag houden, telt per kant (L+R).'] },
-      pull: { t: [1, 1.1], k: [P({ hip: [124, 143], sh: [128, 91], hd: -92, hn: [131, 34], hf: [127, 34], fn: [98, 183], ff: [94, 185], kN: 1, kF: 1, eN: 1, eF: 1, bar: [130, 30], ftN: 60, ftF: 60 }),
-        P({ hip: [124, 97], sh: [128, 46], hd: -95, hn: [131, 34], hf: [127, 34], fn: [104, 168], ff: [100, 170], kN: 1, kF: 1, eN: 1, eF: 1, bar: [130, 30], ftN: 60, ftF: 60 })],
-        cap: 'Klimmzüge', txt: ['Hang met gestrekte armen.', 'Trek op tot je kin boven de stang is, schouders laag houden.', 'Gecontroleerd terug naar gestrekte armen.'] },
-      sbdl: { t: [1.2, 1.2], k: [P({ hip: [92, 128], sh: [136, 104], hd: -40, hn: [152, 160], hf: [148, 160], eN: 1, eF: 1, bag: [150, 170], bagA: 0 }),
-        P({ hip: [118, 99], sh: [121, 47], hd: -90, hn: [140, 112], hf: [136, 112], eN: -1, eF: -1, bag: [140, 116], bagA: 0 })],
-        cap: 'Sandsack: Kreuzheben', txt: ['Zak tussen of vlak voor je voeten, heupen naar achteren, borst omhoog.', 'Pak de zak onderaan vast en sta op door je heupen naar voren te duwen.', 'Rechtop staan en gecontroleerd neerzetten. Rug blijft recht.'] },
-      sbsh: { t: [1, .9, 1.2], k: [P({ hip: [92, 128], sh: [136, 104], hd: -40, hn: [152, 160], hf: [148, 160], eN: 1, eF: 1, bag: [150, 170], bagA: 0 }),
-        P({ hip: [104, 136], sh: [128, 88], hd: -70, hn: [142, 126], hf: [138, 126], eN: -1, eF: -1, bag: [142, 122], bagA: -5 }),
-        P({ hip: [118, 99], sh: [120, 47], hd: -92, hn: [128, 24], hf: [80, 40], eN: 1, eF: 1, bag: [103, 31], bagA: -14, bagMid: true })],
-        cap: 'Sandsack auf die Schulter', txt: ['Oppakken zoals bij het Kreuzheben en de zak op je dijen leggen.', 'Heupen krachtig strekken en de zak met borst en armen op één schouder werken.', 'Rechtop staan, neerzetten en de volgende keer de andere schouder.'] },
-      carry: { t: [.42, .42, .42, .42], k: [0, 1, 2, 3].map(i => Object.assign(walk(i * Math.PI / 2), { hn: [146, 82], hf: [142, 84], eN: -1, eF: -1, bag: [146, 74], bagA: -80, sh: [120, 49] })),
-        cap: 'Sandsack tragen', txt: ['Zak hoog tegen je borst, armen er omheen.', 'Rechtop lopen met korte, rustige passen.', 'Neerzetten met rechte rug, door de knieën.'] },
-      march: { t: [.5, .5, .5, .5], k: [0, 1, 2, 3].map(i => walk(i * Math.PI / 2, true)),
-        cap: 'Gepäckmarsch', txt: ['Rugzak hoog en strak, heupband vast.', 'Stevig doorwandelen, ongeveer 6 km/u.', 'Bij scheen- of voetpijn of blaren: inkorten.'] },
-      run: { t: [.22, .22, .22, .22], k: [0, 1, 2, 3].map(i => runP(i * Math.PI / 2)),
-        cap: 'Lauf', txt: ['Tempo A: rustig, je kunt praten. B: stevig. C: hard, alleen korte stukken.', 'Licht voorover, armen ontspannen meezwaaien.', 'Wandelstukken horen erbij: dat is herstel.'] },
+      squat: { img: 22, vgl: true, orig: 'Spreidstand, doorzakken in diepe hurkzit', txt: ['Voeten op heupbreedte, hielen blijven aan de grond.', 'Heupen naar achteren en omlaag tot je dijen horizontaal zijn, armen naar voren.', 'Rug recht, knieën wijzen in de richting van je tenen.'] },
+      pushup: { img: 42, orig: 'Opdrukken, armen langzaam buigen en snel strekken', txt: ['Handen iets breder dan je schouders, lichaam één rechte lijn van hielen tot hoofd.', 'Zak tot je borst bijna de grond raakt, ellebogen schuin naar achteren.', 'Duw op tot je armen gestrekt zijn. Heupen niet laten hangen.'] },
+      lunge: { img: 52, orig: 'Gaan met diepe uitvalspassen', txt: ['Grote stap naar voren, bovenlichaam rechtop.', 'Zak tot je achterste knie net boven de grond is, voorste knie boven je enkel.', 'Duw terug en wissel van been (L+R).'] },
+      star: { img: 46, orig: 'Spreidsprong', txt: ['Spring tegelijk benen uit elkaar en armen omhoog.', 'Spring terug: benen samen, armen langs je lichaam.', 'Licht op de voorvoeten blijven.'] },
+      plank: { img: 7, vgl: true, orig: 'Opdrukhouding (uitgangshouding)', txt: ['Zoals de afbeelding, maar op je onderarmen: ellebogen recht onder je schouders.', 'Lichaam één rechte lijn, buik en billen aangespannen.', 'Houd de aangegeven tijd vast en blijf rustig ademen.'] },
+      side: { txt: ['Op één onderarm, elleboog onder je schouder, voeten op elkaar.', 'Heupen omhoog tot je lichaam een rechte lijn is.', 'Houd vast. Bovenste arm mag omhoog voor extra spanning.'] },
+      superman: { img: 33, vgl: true, orig: 'Buiklig, snel opheffen van de romp', txt: ['Op je buik, armen gestrekt naar voren.', 'Til tegelijk armen, borst en benen een stukje op.', 'Kort vasthouden, rustig laten zakken. Kijk naar de grond.'] },
+      climber: { img: 38, vgl: true, orig: 'Opdrukhouding, hurken en benen strekken', txt: ['Begin in de opdrukhouding, handen onder je schouders.', 'Trek afwisselend snel een knie naar je borst.', 'Heupen laag houden, telt per kant (L+R).'] },
+      pull: { txt: ['Hang met gestrekte armen.', 'Trek op tot je kin boven de stang is, schouders laag houden.', 'Gecontroleerd terug naar gestrekte armen.'] },
+      sbdl: { txt: ['Zak tussen of vlak voor je voeten, heupen naar achteren, borst omhoog.', 'Pak de zak onderaan vast en sta op door je heupen naar voren te duwen.', 'Rechtop staan en gecontroleerd neerzetten. Rug blijft recht.'] },
+      sbsh: { txt: ['Oppakken zoals bij het Kreuzheben en de zak op je dijen leggen.', 'Heupen krachtig strekken en de zak met borst en armen op één schouder werken.', 'Rechtop staan, neerzetten en de volgende keer de andere schouder.'] },
+      carry: { txt: ['Zak hoog tegen je borst, armen er omheen.', 'Rechtop lopen met korte, rustige passen.', 'Neerzetten met rechte rug, door de knieën.'] },
+      march: { img: 50, vgl: true, orig: 'Snelwandelen', txt: ['Rugzak hoog en strak, heupband vast.', 'Stevig doorwandelen, ongeveer 6 km/u: hiel eerst neerzetten en afrollen naar de tenen.', 'Bij scheen- of voetpijn of blaren: inkorten.'] },
+      run: { img: 48, orig: 'Hardlopen', txt: ['Tempo A: rustig, je kunt praten. B: stevig. C: hard, alleen korte stukken.', 'Licht voorover, armen ontspannen meezwaaien.', 'Wandelstukken horen erbij: dat is herstel.'] },
     };
     const MAP = {
       'Kniebeugen': 'squat', 'Liegestütze': 'pushup', 'Liegestütze: Leistungsprüfung': 'pushup', 'Ausfallschritte': 'lunge', 'Hampelmann': 'star',
@@ -1159,46 +982,12 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       'Sandsack: Kreuzheben': 'sbdl', 'Sandsack auf die Schulter': 'sbsh', 'Sandsack tragen': 'carry', 'Sandsack tragen: Höchstleistung': 'carry',
       'Gepäckmarsch': 'march', 'Dauerlauf': 'run', 'Intensiver Dauerlauf': 'run', 'Intervall': 'run', 'Intervall in Stiefeln': 'run',
     };
-    const keyFor = name => { let n = String(name); const neg = n.endsWith(': Negative'); if (neg) n = n.slice(0, -10); const k = MAP[n]; return k ? { k, neg, name: String(name) } : null; };
-    const NUM = Object.keys(A).reduce((o, k, i) => (o[k] = i + 1, o), {});
-
-    function lerpP(a, b, t) {
-      const o = Object.assign({}, b);
-      for (const k of Object.keys(a)) {
-        const x = a[k], y = b[k];
-        if (Array.isArray(x) && Array.isArray(y)) o[k] = x.map((v, i) => v + (y[i] - v) * t);
-        else if (typeof x === 'number' && typeof y === 'number' && !/^(eN|eF|kN|kF)$/.test(k)) o[k] = x + (y - x) * t;
-      }
-      return o;
-    }
-    let raf = 0;
-    function play(el, key, neg) {
-      cancelAnimationFrame(raf);
-      const an = A[key]; let times = an.t.slice();
-      if (neg) times = [2.6, 0.6]; // negatief: langzaam zakken, snel omhoog
-      const keys = neg ? [an.k[1], an.k[0]] : an.k;
-      const total = times.reduce((a, b) => a + b, 0);
-      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduce) { el.innerHTML = draw(keys[keys.length > 2 ? 1 : 1]); return; }
-      const t0 = performance.now();
-      const frame = now => {
-        if (!el.isConnected) return;
-        let t = ((now - t0) / 1000) % total, i = 0;
-        while (t > times[i]) { t -= times[i]; i++; }
-        const u = t / times[i], e = 0.5 - 0.5 * Math.cos(Math.PI * u);
-        el.innerHTML = draw(lerpP(keys[i], keys[(i + 1) % keys.length], e));
-        raf = requestAnimationFrame(frame);
-      };
-      raf = requestAnimationFrame(frame);
-    }
-    function stop() { cancelAnimationFrame(raf); }
-    return { A, keyFor, NUM, draw, play, stop };
+    const keyFor = name => { let n = String(name); const neg = n.endsWith(': Negative'); if (neg) n = n.slice(0, -10); const k = MAP[n]; return k ? { k, neg } : null; };
+    return { A, keyFor };
   })();
-
   function ibtn(name) {
-    return FIG.keyFor(name) ? `<button class="infobtn" type="button" data-fig="${esc(name)}" aria-label="Uitleg en afbeelding: ${esc(name)}">i</button>` : '';
+    return FIG.keyFor(name) ? `<button class="infobtn" type="button" data-fig="${esc(name)}" aria-label="Uitleg: ${esc(name)}">i</button>` : '';
   }
-  let figPlaying = true;
   function openFig(name) {
     const kf = FIG.keyFor(name); if (!kf) return;
     const an = FIG.A[kf.k];
@@ -1208,26 +997,20 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     if (/Obergriff/.test(name)) steps.unshift('Bovenhands, handen iets breder dan je schouders.');
     if (/Seitstütz links/.test(name)) steps[0] = 'Op je linkeronderarm, elleboog onder je schouder, voeten op elkaar.';
     if (/Seitstütz rechts/.test(name)) steps[0] = 'Op je rechteronderarm, elleboog onder je schouder, voeten op elkaar.';
-    const mirror = /links$/.test(name);
+    const plate = an.img
+      ? `<figure class="plate" style="margin:4px"><img src="abb/abb${an.img}.png" alt="Figuur ${an.img} uit de Sportvorschrift für das Heer: ${esc(an.orig)}" loading="lazy">
+          <figcaption class="platecap">Fig. ${an.img}. ${esc(an.orig)}${an.vgl ? ' (vergelijkbare oefening)' : ''}</figcaption></figure>`
+      : `<p class="hint">Voor deze oefening staat geen afbeelding in de Sportvorschrift für das Heer.</p>`;
     $('#overlay').innerHTML = `<div class="scrim" data-close><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="fig-h">
-      <h2 id="fig-h">Abb. ${FIG.NUM[kf.k]}</h2>
-      <div class="figname">${esc(name)}${nl(name)}</div>
-      <figure class="plate" style="margin:4px"><svg viewBox="0 0 240 200" role="img" aria-label="Animatie van de oefening ${esc(name)}"><g id="fig-g" ${mirror ? 'transform="translate(240,0) scale(-1,1)"' : ''}></g></svg>
-        <figcaption class="platecap">Abb. ${FIG.NUM[kf.k]}. ${esc(kf.neg ? 'Klimmzüge, Negative' : an.cap)}${an.ref ? ' · ' + esc(an.ref.replace('vgl.', 'vgl. Sportvorschrift,')) : ''}</figcaption></figure>
+      <h2 id="fig-h">${esc(name)}</h2>
+      ${nl(name)}
+      ${plate}
       <ol class="figsteps">${steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
-      <div class="row2"><button class="btn ghost" type="button" data-figtoggle>${figPlaying ? 'Pause' : 'Abspielen'}</button><button class="btn" type="button" data-cancel>Schließen</button></div>
+      ${an.img ? '<p class="src">Afbeelding: Sportvorschrift für das Heer, 1 oktober 1938.</p>' : ''}
+      <button class="btn" type="button" data-cancel>Schließen</button>
     </div></div>`;
-    const g = document.getElementById('fig-g');
-    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) figPlaying = false;
-    if (figPlaying) FIG.play(g, kf.k, kf.neg); else g.innerHTML = FIG.draw(FIG.A[kf.k].k[1]);
     $('#overlay .scrim').addEventListener('click', e => {
-      if (e.target.hasAttribute('data-close') || e.target.closest('[data-cancel]')) return closeSheet();
-      const tb = e.target.closest('[data-figtoggle]');
-      if (tb) {
-        figPlaying = !figPlaying; tb.textContent = figPlaying ? 'Pause' : 'Abspielen';
-        if (figPlaying) FIG.play(g, kf.k, kf.neg); else FIG.stop();
-      }
+      if (e.target.hasAttribute('data-close') || e.target.closest('[data-cancel]')) closeSheet();
     });
   }
 
