@@ -253,6 +253,33 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
 .plate img { width: 100%; height: auto; max-height: 42vh; object-fit: contain; display: block; }
 .platecap { font: italic 13px var(--f-body); color: var(--plate-ink); text-align: center; margin-top: 2px; }
 .figsteps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 5px; font-size: 14px; }
+.runlog { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+.runlog label { display: flex; flex-direction: column; gap: 2px; font-family: var(--f-display); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+.runlog input { font: 600 20px var(--f-display); font-variant-numeric: tabular-nums; text-align: center; padding: 4px 2px; border: 0; border-bottom: 2px solid var(--ink); background: transparent; color: var(--ink); width: 100%; min-width: 0; border-radius: 0; }
+.pace { font-family: var(--f-display); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; padding-bottom: 6px; color: var(--run); min-width: 76px; text-align: right; }
+.rpe { padding: 10px 14px 12px; border-top: 1px solid var(--ink); display: flex; flex-direction: column; gap: 6px; background: var(--soft); }
+.rpe-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.rpebtns { display: grid; grid-template-columns: repeat(10, 1fr); border: 1px solid var(--ink); }
+.rpebtns button { border: 0; border-left: 1px solid var(--line); background: var(--surface); height: 36px; font: 600 16px var(--f-display); font-variant-numeric: tabular-nums; padding: 0; min-width: 0; }
+.rpebtns button:first-child { border-left: 0; }
+.rpebtns button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.rpebtns button.hi[aria-pressed="true"] { background: var(--pr); color: var(--surface); }
+.notice { border: 2px solid var(--pr); background: var(--surface); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.notice.calm { border-color: var(--ink); }
+.notice h3 { margin: 0; font-family: var(--f-frak); font-weight: 400; font-size: 22px; color: var(--pr); }
+.notice.calm h3 { color: var(--ink); }
+.notice p { margin: 0; font-size: 14px; }
+.notice .row2 { margin-top: 2px; }
+.kartegrid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ink); }
+.kz { position: relative; min-height: 96px; border-left: 1px solid var(--line); border-top: 1px solid var(--line); padding: 6px 6px 4px; display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow: hidden; }
+.kz:nth-child(3n+1) { border-left: 0; }
+.kz:nth-child(-n+3) { border-top: 0; }
+.kz b { font-family: var(--f-display); font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+.kz small { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kz .pct { margin-top: auto; font-family: var(--f-display); font-size: 16px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kz.now { background: var(--soft); }
+.kz svg.st { position: absolute; right: -4px; bottom: -6px; width: 72px; height: 72px; opacity: .88; }
+.kz .lw { position: absolute; top: 5px; right: 6px; font-family: var(--f-display); font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); padding: 0 3px; }
 </style>
 
 <div class="wrap" id="app"></div>
@@ -292,21 +319,34 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     4: { lift: ['Sandsack auf die Schulter', 5, 2, 'Eén set meer dan vorige week. Wissel van schouder.'], carry: [4, 30] },
     5: { lift: ['Sandsack auf die Schulter', 5, 3, 'Zwaarste week. Stop een set als je rug rond trekt bij het oppakken.'], carry: [5, 30] },
     6: { lift: ['Sandsack auf die Schulter', 3, 2, 'Lichte week: fris blijven voor de test.'], carry: null },
+    7: { lift: ['Sandsack auf die Schulter', 5, 3, 'Begin van blok 2: zelfde zwaarte als week 5, techniek eerst.'], carry: [5, 30], sq: [3, 6] },
+    8: { lift: ['Sandsack auf die Schulter', 6, 3, 'Eén set meer dan vorige week. Wissel van schouder.'], carry: [4, 40], sq: [3, 8] },
+    9: { lift: ['Sandsack auf die Schulter', 5, 4, 'Vier per set: twee per schouder. Stop een set als je rug rond trekt.'], carry: [5, 40], sq: [4, 8] },
+    10: { lift: ['Sandsack auf die Schulter', 3, 3, 'Lichte week: herstel, techniek scherp houden.'], carry: [3, 30], sq: [2, 6] },
+    11: { lift: ['Sandsack auf die Schulter', 6, 4, 'Zwaarste week van blok 2.'], carry: [4, 50], sq: [4, 10] },
+    12: { lift: ['Sandsack auf die Schulter', 3, 2, 'Lichte week: fris blijven voor de eindtest.'], carry: null },
   };
+  const TOTAL = 12;
   function sandbag(week) {
     const s = SB[week];
     const items = [{ k: 'tr', id: 'sbl', name: s.lift[0], sets: s.lift[1], target: s.lift[2], unit: '×', tag: 'sand', cue: s.lift[3] }];
     if (s.carry) items.push({ k: 'tr', id: 'sbc', name: 'Sandsack tragen', sets: s.carry[0], target: s.carry[1], unit: 'm', step: 5, tag: 'sand', cue: 'Zak hoog tegen de borst, rechtop lopen, korte passen. 90–120 s rust tussen sets.' });
-    else items.push({ k: 'test', id: 'sbcmax', name: 'Sandsack tragen: Höchstleistung', unit: 'm', tag: 'sand', cue: 'Eén poging, zo ver mogelijk zonder neerzetten. Vergelijk met je 30 m sets uit week 5.' });
+    else items.push({ k: 'test', id: 'sbcmax', name: 'Sandsack tragen: Höchstleistung', unit: 'm', tag: 'sand', cue: 'Eén poging, zo ver mogelijk zonder neerzetten. Vergelijk met je vorige test en met je langste sets.' });
+    if (s.sq) items.push({ k: 'tr', id: 'sbsq', name: 'Sandsack: Kniebeugen', sets: s.sq[0], target: s.sq[1], unit: '×', tag: 'sand', cue: 'Zak hoog tegen je borst (bear hug), voeten iets breder dan je heupen. Zak tot je dijen horizontaal zijn, rug recht, en kom krachtig omhoog.' });
     return items;
   }
   // ---- Mars met rugzak: elke week óf gewicht óf afstand omhoog ----
-  const RUCK_KM = { 1: 5, 2: 6, 3: 6, 4: 8, 5: 8, 6: 10 };
-  const ruckKg = w => (state.ruckKg || 10) + 2.5 * Math.floor((w - 1) / 2);
+  const RUCK_KM = { 1: 5, 2: 6, 3: 6, 4: 8, 5: 8, 6: 10, 7: 10, 8: 12, 9: 12, 10: 8, 11: 13, 12: 15 };
+  const RUCK_INC = { 1: 0, 2: 0, 3: 2.5, 4: 2.5, 5: 5, 6: 5, 7: 7.5, 8: 7.5, 9: 10, 10: 5, 11: 10, 12: 10 };
+  const ruckKg = w => (state.ruckKg || 10) + RUCK_INC[w];
+  // lichte week: afstand 25% korter
+  const isLight = w => !!(state.light && state.light[w]);
+  const ruckKm = w => isLight(w) ? Math.round(RUCK_KM[w] * 0.75 * 2) / 2 : RUCK_KM[w];
   const ruck = w => ({ k: 'ruck', id: 'ruck', week: w });
   const pullTest = (cue) => ({ k: 'test', id: 'pulltest', name: 'Klimmzüge: Leistungsprüfung', unit: '×', tag: 'test', cue: cue || 'Test met pull-ups (bovenhands). Uitgerust, gestrekte armen onderaan, kin over de stang. Tel alleen nette herhalingen.' });
   const pull = () => ({ k: 'pull', id: 'pull', name: 'Optrekken', tag: 'bar' });
-  const pushTest = () => ({ k: 'test', id: 'pushtest', name: 'Liegestütze: Leistungsprüfung', unit: '×', tag: 'test', cue: 'Na de optrektest en een paar minuten rust. Borst raakt bijna de grond, armen volledig gestrekt, lichaam recht. Doorgaan tot de techniek breekt. Week 4–5 rekenen met deze uitslag.' });
+  const pushTest = (cue) => ({ k: 'test', id: 'pushtest', name: 'Liegestütze: Leistungsprüfung', unit: '×', tag: 'test', cue: 'Borst raakt bijna de grond, armen volledig gestrekt, lichaam recht. Doorgaan tot de techniek breekt. ' + (cue || 'Week 4–5 rekenen met deze uitslag.') });
+  const cooperTest = (cue) => ({ k: 'test', id: 'cooper', name: 'Cooper-Test', unit: 'm', tag: 'test', cue: 'Eerst 10 minuten rustig inlopen. Dan 12 minuten zo ver mogelijk lopen op een vlak parcours of een atletiekbaan. Vul de afstand in meters in. ' + (cue || '') });
 
   const sbKg = () => (typeof state.sbKg === 'number' ? state.sbKg : 70);
   const hasBar = () => state.bar !== false;
@@ -379,6 +419,61 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         [],
         [],
       ][dow];
+      // ---- Blok 2: opbouw vanuit de eindtests van week 6. Week 10 is licht, week 12 is de Prüfungswoche. ----
+      case 7: return [
+        [S(1, 'Dauerlauf und Kraft', [duur('run', 30), pushTest('Begin van blok 2: week 7–11 rekenen met deze uitslag.'), ...sandbag(7), pull(), ...krachtMa(20, 14, 20)])],
+        [],
+        [S(1, 'Cooper-Test', [cooperTest('Begintest van blok 2.')])],
+        [S(1, 'Gepäckmarsch', [ruck(7)])],
+        [S(1, 'Kraft und Rumpf', [...sandbag(7), pull(), ...krachtVr(18, 8, 3, 45, 12)])],
+        [S(1, 'Dauerlauf', [duur('run', 40)])],
+        [],
+      ][dow];
+      case 8: return [
+        [S(1, 'Dauerlauf und Kraft', [duur('run', 35), ...sandbag(8), pull(), ...krachtMa(20, 14, 20)])],
+        [],
+        [S(1, 'Intervall', [interval('run', 'Intervall', [['3′', 'tempo B'], ['2′', 'gehen']], 5)])],
+        [S(1, 'Gepäckmarsch', [ruck(8)])],
+        [S(1, 'Kraft und Rumpf', [...sandbag(8), pull(), ...krachtVr(20, 8, 3, 50, 12)])],
+        [S(1, 'Dauerlauf', [duur('run', 45)])],
+        [],
+      ][dow];
+      case 9: return [
+        [S(1, 'Dauerlauf und Kraft', [duur('run', 40), ...sandbag(9), pull(), ...krachtMa(22, 14, 22)])],
+        [],
+        [S(1, 'Intervall in Stiefeln', [interval('run', 'Intervall in Stiefeln', [['3′', 'tempo B'], ['1′', 'gehen']], 6)])],
+        [S(1, 'Gepäckmarsch', [ruck(9)])],
+        [S(1, 'Kraft und Rumpf', [...sandbag(9), pull(), ...krachtVr(20, 8, 3, 55, 14)])],
+        [S(1, 'Dauerlauf', [duur('run', 50)])],
+        [],
+      ][dow];
+      case 10: return [
+        [S(1, 'Dauerlauf und Kraft', [duur('run', 25), ...sandbag(10), pull(), ...krachtMa(15, 10, 15)])],
+        [],
+        [S(1, 'Intervall', [interval('run', 'Intervall', [['2′', 'tempo B'], ['2′', 'gehen']], 4)])],
+        [S(1, 'Gepäckmarsch', [ruck(10)])],
+        [S(1, 'Kraft und Rumpf', [...sandbag(10), pull(), ...krachtVr(14, 8, 2, 40, 10)])],
+        [S(1, 'Dauerlauf', [duur('run', 35)])],
+        [],
+      ][dow];
+      case 11: return [
+        [S(1, 'Dauerlauf und Kraft', [duur('run', 40), ...sandbag(11), pull(), ...krachtMa(25, 14, 25)])],
+        [],
+        [S(1, 'Intervall', [interval('run', 'Intervall', [['2′', 'tempo C'], ['1′', 'gehen']], 10)])],
+        [S(1, 'Gepäckmarsch', [ruck(11)])],
+        [S(1, 'Kraft und Rumpf', [...sandbag(11), pull(), ...krachtVr(22, 8, 3, 60, 15)])],
+        [S(1, 'Dauerlauf', [duur('run', 55)])],
+        [],
+      ][dow];
+      case 12: return [
+        [S(1, 'Leistungsprüfung', [pullTest('Eindtest van blok 2. Uitgerust, aan het begin.'), pushTest('Eindtest van blok 2.'), ...sandbag(12)])],
+        [],
+        [S(1, 'Intervall', [interval('run', 'Intervall', [['2′', 'tempo B'], ['2′', 'gehen']], 4)])],
+        [S(1, 'Gepäckmarsch', [ruck(12)])],
+        [],
+        [S(1, 'Cooper-Test', [cooperTest('Eindtest van blok 2. Vergelijk met week 7.')])],
+        [],
+      ][dow];
     }
     return [];
   }
@@ -394,7 +489,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     'Sandsack tragen': 'zandzak dragen (bear-hug carry)', 'Sandsack tragen: Höchstleistung': 'zandzak dragen, max afstand',
     'Gepäckmarsch': 'mars met rugzak', 'Dauerlauf': 'duurloop', 'Intensiver Dauerlauf': 'intensieve duurloop',
     'Intervall': 'interval', 'Intervall in Stiefeln': 'interval op kisten',
-    'Dauerlauf und Kraft': 'duurloop en kracht', 'Kraft und Rumpf': 'kracht en core stability', 'Kraft': 'kracht',
+    'Dauerlauf und Kraft': 'duurloop en kracht', 'Cooper-Test': 'Cooper-test: 12 minuten zo ver mogelijk', 'Sandsack: Kniebeugen': 'zandzak squat (bear hug)', 'Leistungsprüfung': 'eindtests', 'Kraft und Rumpf': 'kracht en core stability', 'Kraft': 'kracht',
     'gehen': 'wandelen', 'wiederholen': 'herhalen',
   };
   function nl(name) {
@@ -446,7 +541,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       if (i < tc && !act.has(i)) { if (i === c) return { skipped: true, dow, cal: c, next: pw + 1 }; continue; }
       pw++;
     }
-    if (pw > 6) return null;
+    if (pw > TOTAL) return null;
     return { week: pw, dow, cal: c, shift: c + 1 - pw };
   }
   function sessionsFor(k) { const i = info(k); return i && !i.skipped ? plan(i.week, i.dow) : []; }
@@ -475,8 +570,8 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       const sets = i.week <= 2 ? 3 : 4, reps = i.week === 1 ? 3 : i.week <= 3 ? 4 : 5;
       return { sets, target: reps, neg: true, M };
     }
-    const pct = { 1: .5, 2: .55, 3: .6, 4: .6, 5: .7, 6: .5 }[i.week];
-    return { sets: i.week <= 2 ? 4 : 5, target: Math.max(1, Math.round(M * pct)), neg: false, M, pct };
+    const pct = { 1: .5, 2: .55, 3: .6, 4: .6, 5: .7, 6: .5, 7: .55, 8: .6, 9: .65, 10: .5, 11: .7, 12: .5 }[i.week] || .5;
+    return { sets: i.week <= 2 ? 4 : i.week === 10 ? 3 : 5, target: Math.max(1, Math.round(M * pct)), neg: false, M, pct };
   }
   // geeft het item als concreet set-item terug (voor pull)
   function pushMaxAt(k) {
@@ -488,11 +583,16 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     return best != null ? best : (state.pushMax || 25);
   }
   function resolve(k, it) {
+    const r = resolve0(k, it), i = info(k);
+    if (i && !i.skipped && isLight(i.week) && (r.k === 'bw' || r.k === 'tr') && r.sets > 1) return { ...r, sets: r.sets - 1 };
+    return r;
+  }
+  function resolve0(k, it) {
     if (it.k === 'bw' && it.id === 'pu') {
       const i = info(k); if (!i) return it;
       const M = pushMaxAt(k);
-      if (i.week >= 6) return M >= 25 ? it : { ...it, note: `M: 2×20, V: 2×10. Uitvoering zoals bij de DCP. Haal je dat nog niet, doe dan 2 sets van zoveel als je net haalt (je max was ${M}).` };
-      const pct = { 1: .5, 2: .55, 3: .6, 4: .65, 5: .7 }[i.week];
+      if (i.week === 6) return M >= 25 ? it : { ...it, note: `M: 2×20, V: 2×10. Uitvoering zoals bij de DCP. Haal je dat nog niet, doe dan 2 sets van zoveel als je net haalt (je max was ${M}).` };
+      const pct = { 1: .5, 2: .55, 3: .6, 4: .65, 5: .7, 7: .55, 8: .6, 9: .65, 10: .5, 11: .7 }[i.week] || .5;
       const reps = Math.max(3, Math.round(M * pct));
       return reps === it.reps ? it : { ...it, reps, note: `Schema zegt ${it.sets}×${it.reps}. Aangepast naar ${Math.round(pct * 100)}% van je max (${M}). Rustig zakken, borst bijna op de grond.` };
     }
@@ -595,7 +695,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     const t = today();
     let h = `<section class="weekhead">
       <button class="iconbtn" data-week="-1" type="button" aria-label="Vorige week" ${canPrev ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <div class="t"><h1>${!i ? 'Außer Dienst' : i.skipped ? 'Ausgefallen' : i.week + '. Woche'}</h1><p>${esc(DAYS_LONG[(fromKey(k).getDay() + 6) % 7])} ${fromKey(k).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' })}${k === t ? ' · heute' : ''}${i && !i.skipped ? ' · von 6' : ''}${i && i.shift ? ' · ' + i.shift + (i.shift === 1 ? ' Woche' : ' Wochen') + ' verschoben' : ''}</p></div>
+      <div class="t"><h1>${!i ? 'Außer Dienst' : i.skipped ? 'Ausgefallen' : i.week + '. Woche'}</h1><p>${esc(DAYS_LONG[(fromKey(k).getDay() + 6) % 7])} ${fromKey(k).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' })}${k === t ? ' · heute' : ''}${i && !i.skipped ? ' · von ' + TOTAL : ''}${i && i.shift ? ' · ' + i.shift + (i.shift === 1 ? ' Woche' : ' Wochen') + ' verschoben' : ''}</p></div>
       <button class="iconbtn" data-week="1" type="button" aria-label="Volgende week" ${canNext ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
     </section>
     <div class="strip">${DAYS.map((dn, j) => {
@@ -605,6 +705,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     }).join('')}</div>`;
 
     const ss = sessionsFor(k);
+    h += lightNotice(i);
     if (i && i.skipped) {
       h += `<section class="rest"><h2>Woche ausgefallen</h2><p class="hint">In deze week is niets afgevinkt, dus het schema is een week opgeschoven. De week erna begin je met week ${i.next}, op het niveau waar je gebleven was.</p></section>`;
       return h;
@@ -621,11 +722,33 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       const p = s.items.filter(it => itemDone(k, s, it)).length;
       h += `<section class="session">${p === s.items.length ? '<span class="stamp">Erledigt</span>' : ''}<div class="shead"><h2>${esc(s.title)}${nl(s.title)}</h2><span class="label">${ss.length > 1 ? 'Dienst ' + s.moment + ' · ' : ''}${p}/${s.items.length}</span></div><div class="items">`;
       s.items.forEach((it0, ii) => { h += renderItem(k, s, it0, si, ii); });
-      h += `</div></section>`;
+      const rv = ((state.logs[k] || {})['m' + s.moment + '.rpe'] || {}).v;
+      h += `</div><div class="rpe"><div class="rpe-h"><span class="label">Belastung</span><span class="label" style="letter-spacing:.04em;text-transform:none">${rv ? rpeTxt(rv) : 'Hoe zwaar was deze dienst?'}</span></div>
+        <div class="rpebtns" role="group" aria-label="Belasting van 1 tot 10">${Array.from({ length: 10 }, (_, j) => `<button type="button" class="${j >= 8 ? 'hi' : ''}" data-rpe="${j + 1}" data-si="${si}" aria-pressed="${rv === j + 1}">${j + 1}</button>`).join('')}</div></div></section>`;
     });
     return h;
   }
 
+  // ---- looptijden ----
+  const fmtMin = m => { const mm = Math.floor(m), ss = Math.round((m - mm) * 60); return ss ? mm + ':' + String(ss === 60 ? 0 : ss).padStart(2, '0') : String(mm); };
+  const parseMin = str => { str = String(str).trim().replace(',', '.'); if (!str) return null; if (str.includes(':')) { const [a, b] = str.split(':'); const v = +a + (+b) / 60; return isFinite(v) && v > 0 ? v : NaN; } const v = parseFloat(str); return isFinite(v) && v > 0 ? v : NaN; };
+  const fmtPace = m => { let mm = Math.floor(m), ss = Math.round((m - mm) * 60); if (ss === 60) { mm++; ss = 0; } return mm + ':' + String(ss).padStart(2, '0'); };
+  const paceTxt = l => (l && l.km > 0 && l.min > 0) ? fmtPace(l.min / l.km) + ' /km' : '';
+  const rpeTxt = v => v <= 3 ? 'licht' : v <= 6 ? 'goed te doen' : v <= 8 ? 'zwaar' : 'zeer zwaar';
+  // laatste beoordelingen, nieuwste eerst
+  function lastRpe(n) {
+    const out = [];
+    for (const [dk, l] of Object.entries(state.logs)) for (const [ik, v] of Object.entries(l)) if (ik.endsWith('.rpe') && v && typeof v.v === 'number') out.push({ k: dk, m: ik, v: v.v });
+    return out.sort((a, b) => a.k < b.k ? 1 : a.k > b.k ? -1 : (a.m < b.m ? 1 : -1)).slice(0, n);
+  }
+  function lightNotice(i) {
+    if (!i || i.skipped) return '';
+    if (isLight(i.week)) return `<section class="notice calm"><h3>Leichte Woche</h3><p>Deze week doe je bij elk krachtonderdeel één set minder en is de mars 25% korter. Loop alles in tempo A.</p><button class="btn ghost" type="button" data-light="${i.week}">Aufheben</button></section>`;
+    const r = lastRpe(3);
+    if (r.length === 3 && r.every(x => x.v >= 9) && diffDays(today(), r[0].k) <= 10)
+      return `<section class="notice"><h3>Achtung</h3><p>Je laatste drie diensten gaf je een 9 of hoger. Dan groeit vermoeidheid sneller dan je kracht. Leg een lichte week in: één set minder bij kracht, mars 25% korter, lopen in tempo A.</p><button class="btn" type="button" data-light="${i.week}">Leichte Woche einlegen</button></section>`;
+    return '';
+  }
   function tagHtml(it) {
     if (it.tag === 'sand') return `<span class="badge sand">${nf(sbKg(), 1)} kg</span>`;
     if (it.tag === 'bar') return '<span class="badge bar">Reck</span>';
@@ -639,6 +762,9 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     if (it.k === 'run') {
       return `<div class="item run"><div class="ih"><span class="iname">${esc(it.title)}${nl(it.title)}</span>${ibtn(it.title)}</div>
         <div class="blocks">${it.blocks.map(b => `<div><b class="${b[2] === 'rep' ? 'rep' : ''}">${esc(b[0])}</b><span class="${b[2] === 'rep' ? 'rep' : ''}">${esc(b[1])}${NL[b[1]] ? ` <span class="nlw">${NL[b[1]]}</span>` : ''}</span></div>`).join('')}</div>
+        <div class="runlog"><label for="rk-${si}-${ii}">Strecke km<input id="rk-${si}-${ii}" data-runf="km" ${ref} type="text" inputmode="decimal" placeholder="—" value="${typeof l.km === 'number' ? nf(l.km, 2) : ''}"></label>
+          <label for="rm-${si}-${ii}">Zeit min<input id="rm-${si}-${ii}" data-runf="min" ${ref} type="text" inputmode="decimal" placeholder="—" value="${typeof l.min === 'number' ? fmtMin(l.min) : ''}"></label>
+          <span class="pace" id="pace-${si}-${ii}">${paceTxt(l)}</span></div>
         <div class="bubbles"><button class="bub big ${l.done ? 'on' : ''}" type="button" data-act="done" ${ref}>${l.done ? 'Erledigt' : 'Abzeichnen'}</button></div></div>`;
     }
     if (it.k === 'check') {
@@ -653,10 +779,10 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         <div class="bubbles">${Array.from({ length: it.sets }, (_, j) => `<button class="bub ${arr[j] ? 'on' : ''}" type="button" data-act="bw" data-j="${j}" ${ref} aria-label="Set ${j + 1}">${it.reps}${it.unit === 's' ? '″' : ''}</button>`).join('')}</div></div>`;
     }
     if (it.k === 'ruck') {
-      const tk = ruckKg(it.week), tkm = RUCK_KM[it.week];
+      const tk = ruckKg(it.week), tkm = ruckKm(it.week);
       const kg = typeof l.kg === 'number' ? l.kg : tk, km = typeof l.km === 'number' ? l.km : tkm;
       const prevW = it.week > 1 ? [ruckKg(it.week - 1), RUCK_KM[it.week - 1]] : null;
-      const what = !prevW ? 'Startweek.' : tk > prevW[0] ? 'Deze week gaat het gewicht omhoog, de afstand blijft gelijk.' : 'Deze week gaat de afstand omhoog, het gewicht blijft gelijk.';
+      const what = isLight(it.week) ? 'Lichte week: 25% korter.' : !prevW ? 'Startweek.' : (tk < prevW[0] || tkm < prevW[1]) ? 'Lichte week: gewicht en afstand omlaag, zodat je herstelt.' : (tk > prevW[0] && tkm > prevW[1]) ? 'Na de lichte week weer omhoog naar het niveau van week 9 en verder.' : tk > prevW[0] ? 'Deze week gaat het gewicht omhoog, de afstand blijft gelijk.' : tkm > prevW[1] ? 'Deze week gaat de afstand omhoog, het gewicht blijft gelijk.' : 'Zelfde belasting als vorige week.';
       const row = (f, lab, v, step, unit) => `<div class="tr"><span class="sn">${lab}</span>
         <div class="step"><button type="button" data-act="rkstep" data-f="${f}" data-by="${-step}" ${ref} aria-label="${lab} minder">−</button><span>${nf(v, 1)} ${unit}</span><button type="button" data-act="rkstep" data-f="${f}" data-by="${step}" ${ref} aria-label="${lab} meer">+</button></div><span></span></div>`;
       return `<div class="item run"><div class="ih"><span class="iname">Gepäckmarsch${nl('Gepäckmarsch')}</span>${ibtn('Gepäckmarsch')}<span class="imeta">${nf(tk, 1)} kg × ${tkm} km</span></div>
@@ -693,19 +819,23 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   // ---------- voortgang ----------
   function weekAgg() {
     const st = startKey(), t = today();
-    const W = Array.from({ length: 6 }, (_, i) => ({ w: i + 1, pull: 0, carry: 0, lifts: 0, push: 0, ruck: 0, done: 0, total: 0 }));
+    const W = Array.from({ length: TOTAL }, (_, i) => ({ w: i + 1, pull: 0, carry: 0, lifts: 0, push: 0, ruck: 0, runKm: 0, done: 0, total: 0, first: null, last: null, act: null }));
     for (let d = 0; d < 400; d++) {
       const k = addDays(st, d), inf = info(k);
       if (!inf) break;
       if (inf.skipped) continue;
       const wi = inf.week - 1, A = W[wi];
+      if (!A.first) A.first = k; A.last = k;
       for (const s of plan(inf.week, inf.dow)) for (const it0 of s.items) {
+        A.all = (A.all || 0) + 1; if (itemDone(k, s, it0)) A.doneAll = (A.doneAll || 0) + 1;
         if (k <= t) { A.total++; if (itemDone(k, s, it0)) A.done++; }
         const l = log(k, s, it0); if (!l) continue;
         if (it0.k === 'pull' && l.s) A.pull += l.s.filter(x => x && x.d).reduce((a, x) => a + (x.v || 0), 0);
         if (it0.id === 'sbc' && l.s) A.carry += l.s.filter(x => x && x.d).reduce((a, x) => a + (x.v || 0), 0);
         if (it0.id === 'sbl' && l.s) A.lifts += l.s.filter(x => x && x.d).reduce((a, x) => a + (x.v || 0), 0);
-        if (it0.k === 'ruck' && l.done) A.ruck += (typeof l.kg === 'number' ? l.kg : ruckKg(wi + 1)) * (typeof l.km === 'number' ? l.km : RUCK_KM[wi + 1]);
+        if (it0.k === 'ruck' && l.done) A.ruck += (typeof l.kg === 'number' ? l.kg : ruckKg(wi + 1)) * (typeof l.km === 'number' ? l.km : ruckKm(wi + 1));
+        if (it0.k === 'run' && typeof l.km === 'number') A.runKm += l.km;
+        if (itemDone(k, s, it0)) A.act = k;
         if (it0.id === 'pu' && l.s) A.push += l.s.filter(Boolean).length * resolve(k, it0).reps;
       }
     }
@@ -778,7 +908,20 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     if (big) big.textContent = RW.filter(x => state.richt[x.id] && rwStatus(x, state.richt[x.id].v)[0]).length + '/' + RW.length;
     if (st[0] === 'j2') toast('Norm 2. Dienstjahr erfüllt');
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.rw) e.target.blur(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && (e.target.dataset.rw || e.target.dataset.runf)) e.target.blur(); });
+  document.addEventListener('change', e => {
+    const f = e.target && e.target.dataset && e.target.dataset.runf; if (!f) return;
+    const k = view.date, s = sessionsFor(k)[+e.target.dataset.si], it0 = s && s.items[+e.target.dataset.ii]; if (!it0) return;
+    const v = f === 'km' ? (() => { const t = String(e.target.value).trim().replace(',', '.'); if (!t) return null; const n = parseFloat(t); return isFinite(n) && n > 0 ? n : NaN; })() : parseMin(e.target.value);
+    if (Number.isNaN(v)) { toast(f === 'km' ? 'Vul de afstand in km in, bijvoorbeeld 5,2.' : 'Vul de tijd in minuten in, bijvoorbeeld 32 of 31:45.'); return; }
+    const l = JSON.parse(JSON.stringify(log(k, s, it0) || {}));
+    if (v == null) delete l[f]; else { l[f] = v; l.done = true; }
+    setLog(k, s, it0, Object.keys(l).length ? l : null);
+    if (v != null) e.target.value = f === 'km' ? nf(v, 2) : fmtMin(v);
+    const pc = document.getElementById(`pace-${e.target.dataset.si}-${e.target.dataset.ii}`); if (pc) pc.textContent = paceTxt(l);
+    const db = document.querySelector(`[data-act="done"][data-si="${e.target.dataset.si}"][data-ii="${e.target.dataset.ii}"]`);
+    if (db && l.done) { db.classList.add('on'); db.textContent = 'Erledigt'; }
+  });
 
   function tests(id) {
     const out = [];
@@ -795,26 +938,75 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       ${vals.map((v, i) => {
         const h = (v / mx) * (H - T - B), x = L + i * bw + bw * 0.18, w = bw * 0.64;
         return `${v > 0 ? `<rect x="${x}" y="${H - B - h}" width="${w}" height="${h}" fill="${color}" opacity="${i + 1 === curW ? 1 : .78}"/>
-          <text class="vl" x="${x + w / 2}" y="${H - B - h - 5}" text-anchor="middle">${fmt(v)}</text>` : ''}
-          <text x="${x + w / 2}" y="${H - 5}" text-anchor="middle" ${i + 1 === curW ? 'style="fill:var(--ink);font-weight:700"' : ''}>W${i + 1}</text>`;
+          <text class="vl" x="${x + w / 2}" y="${H - B - h - 5}" text-anchor="middle" ${vals.length > 8 ? 'style="font-size:9.5px"' : ''}>${fmt(v)}</text>` : ''}
+          <text x="${x + w / 2}" y="${H - 5}" text-anchor="middle" ${i + 1 === curW ? 'style="fill:var(--ink);font-weight:700"' : ''}>${i + 1}</text>`;
       }).join('')}
     </svg>`;
   }
 
+  function stampSvg(n, dateKey) {
+    const rot = ((n * 37) % 17) - 8, d = fromKey(dateKey), ds = String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getFullYear()).slice(2);
+    return `<svg class="st" viewBox="0 0 80 80" aria-hidden="true"><g transform="rotate(${rot} 40 40)" fill="none" stroke="var(--pr)">
+      <circle cx="40" cy="40" r="35" stroke-width="2.6"/><circle cx="40" cy="40" r="30" stroke-width="1"/>
+      <text x="40" y="37" text-anchor="middle" fill="var(--pr)" stroke="none" style="font:700 12px var(--f-display);letter-spacing:.08em">ERLEDIGT</text>
+      <text x="40" y="51" text-anchor="middle" fill="var(--pr)" stroke="none" style="font:600 10px var(--f-display)">${ds}</text></g></svg>`;
+  }
+  function dienstkarte(A) {
+    const t = today(), cw = info(t);
+    const fmt = k => { const d = fromKey(k); return d.getDate() + '.' + (d.getMonth() + 1) + '.'; };
+    const isStamped = x => !!x.all && ((x.last && x.last < t && x.doneAll / x.all >= 0.8) || x.doneAll >= x.all);
+    const stamped = A.filter(isStamped).length;
+    return `<section class="panel"><div class="ph"><h2>Dienstkarte</h2><span class="big">${stamped}/${TOTAL}</span></div>
+      <p class="hint">Een week krijgt een stempel als hij voorbij is en je minstens 80% hebt afgetekend, of zodra alles af is.</p>
+      <div class="kartegrid">${A.map(x => {
+        const now = cw && !cw.skipped && cw.week === x.w;
+        const p = x.all ? Math.round((x.doneAll || 0) / x.all * 100) : 0;
+        const done = isStamped(x);
+        return `<div class="kz ${now ? 'now' : ''}"><b>${x.w}. Woche</b><small>${x.first ? fmt(x.first) + '–' + fmt(x.last) : ''}</small>
+          ${isLight(x.w) || x.w === 10 ? '<span class="lw">L</span>' : ''}
+          ${done ? stampSvg(x.w, x.act || x.last) : `<span class="pct">${x.doneAll ? p + '%' : ''}</span>`}</div>`;
+      }).join('')}</div>
+      <p class="src">L = lichte week. Week 10 is altijd licht; zelf ingelaste lichte weken staan er ook.</p></section>`;
+  }
+  function lauf(A) {
+    const runs = [];
+    for (const [dk, l] of Object.entries(state.logs)) for (const [ik, v] of Object.entries(l)) if (/\.run2?$/.test(ik) && v && v.km > 0 && v.min > 0) runs.push({ k: dk, km: v.km, min: v.min });
+    const ct = tests('cooper');
+    let est = null, t24 = null, best = null;
+    for (const r of runs.filter(r => r.km >= 2)) {
+      const d12 = r.km * Math.pow(12 / r.min, 1 / 1.06) * 1000, t = r.min * Math.pow(2.4 / r.km, 1.06);
+      if (!est || d12 > est) est = d12; if (!t24 || t < t24) t24 = t;
+      const pc = r.min / r.km; if (!best || pc < best) best = pc;
+    }
+    const tot = runs.reduce((a, r) => a + r.km, 0);
+    return `<section class="panel"><div class="ph"><h2>Laufbuch</h2><span class="big">${nf(tot, 1)} km</span></div>
+      <p class="hint">${runs.length ? `${runs.length} loopjes gelogd. Snelste tempo ${fmtPace(best)} /km.` : 'Vul bij een loopdienst je afstand en tijd in. Dan zie je hier je kilometers per week en je tempo.'}</p>
+      ${bars(A.map(x => Math.round(x.runKm * 10) / 10), v => nf(v, 0), 'var(--run)')}
+      <div class="grid2" style="gap:8px">
+        <div><span class="label">Cooper-Test</span><div class="big" style="font-size:24px">${ct.length ? nf(ct[ct.length - 1].v, 0) + ' m' : '—'}</div><small class="hint">${ct.length > 1 ? 'eerste ' + nf(ct[0].v, 0) + ' m' : ct.length ? 'getest' : 'week 7 en 12'}</small></div>
+        <div><span class="label">Geschätzt</span><div class="big" style="font-size:24px">${est ? nf(Math.round(est / 10) * 10, 0) + ' m' : '—'}</div><small class="hint">${t24 ? '2,4 km ≈ ' + fmtPace(t24) + ' min' : 'uit je snelste loop vanaf 2 km'}</small></div>
+      </div></section>`;
+  }
+  function backupNote() {
+    if (inFrame || !Object.keys(state.logs).length) return '';
+    const age = state.lastBackup ? diffDays(today(), state.lastBackup) : 999;
+    if (age < 14) return '';
+    return `<section class="notice calm"><h3>Sicherung</h3><p>${state.lastBackup ? 'Je laatste back-up is ' + age + ' dagen oud.' : 'Je hebt nog geen back-up gemaakt.'} Je voortgang staat alleen op deze telefoon.</p><button class="btn" type="button" data-backup>Back-up opslaan</button></section>`;
+  }
   function renderProgress() {
     const A = weekAgg();
     const pt = tests('pulltest'), cm = tests('sbcmax');
     const done = A.reduce((a, x) => a + x.done, 0), tot = A.reduce((a, x) => a + x.total, 0);
     const first = pt[0], last = pt[pt.length - 1];
-    let h = `<section class="panel"><div class="ph"><h2>Dienstplan erfüllt</h2><span class="big">${tot ? Math.round(done / tot * 100) : 0}%</span></div>
+    let h = backupNote() + dienstkarte(A) + lauf(A) + `<section class="panel"><div class="ph"><h2>Dienstplan erfüllt</h2><span class="big">${tot ? Math.round(done / tot * 100) : 0}%</span></div>
       <p class="hint">${done} van ${tot} onderdelen tot en met vandaag afgevinkt.</p>
       ${bars(A.map(x => x.total ? Math.round(x.done / x.total * 100) : 0), v => v + '%', 'var(--run)')}</section>
 
       <section class="panel"><div class="ph"><h2>Klimmzüge</h2><span class="big">${last ? last.v + '×' : '—'}</span></div>
-      <p class="hint">${pt.length ? pt.map(x => `${fromKey(x.k).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}: ${x.v}`).join(' → ') + (pt.length > 1 ? ` (${last.v - first.v >= 0 ? '+' : ''}${last.v - first.v})` : '') : 'Testmomenten: week 1 maandag, week 4 woensdag en week 6 woensdag.'}</p></section>
+      <p class="hint">${pt.length ? pt.map(x => `${fromKey(x.k).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}: ${x.v}`).join(' → ') + (pt.length > 1 ? ` (${last.v - first.v >= 0 ? '+' : ''}${last.v - first.v})` : '') : 'Testmomenten: week 1 maandag, week 4 woensdag, week 6 woensdag en week 12 maandag.'}</p></section>
 
       <section class="panel"><div class="ph"><h2>Gepäckmarsch</h2><span class="label">kg × km</span></div>
-        <p class="hint">Gepland: ${[1, 2, 3, 4, 5, 6].map(w => nf(ruckKg(w), 1) + '×' + RUCK_KM[w]).join(' · ')}</p>
+        <p class="hint">Gepland (kg × km): ${Array.from({ length: TOTAL }, (_, i) => i + 1).map(w => nf(ruckKg(w), 1) + '×' + ruckKm(w)).join(' · ')}</p>
         ${bars(A.map(x => Math.round(x.ruck)), v => v, 'var(--run)')}</section>
       ${richtCard()}
       <div class="grid2">
@@ -829,11 +1021,14 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         <p><b>Namen.</b> Kniebeugen = air squats, Liegestütze = push-ups, Ausfallschritte = lunges, Hampelmann = starjumps, Unterarmstütz = plank, Seitstütz = side plank, Bergsteiger = mountain climbers, Klimmzüge im Obergriff = pull-ups, im Untergriff eng = narrow grip chin-ups, Kreuzheben = deadlift, Gepäckmarsch = mars met rugzak, Stiefel = kisten.</p>
         <p><b>Materiaal.</b> Het gewicht van je zandzak en of je een optrekstang hebt, stel je in bij het tandwiel. Zonder zandzak of stang verdwijnen die onderdelen uit het schema; de rest blijft hetzelfde. Is de zak lichter dan 40 kg, doe dan bij elk zandzakonderdeel gerust 2 herhalingen of 10 m extra.</p>
         <p><b>Richtwerte 1938.</b> De kaart in het Leistungsbuch hoort niet bij je schema en telt niet mee voor je weken. Het is een vergelijking met de normen uit de Sportvorschrift für das Heer, voor wie wil weten hoe hij zich verhoudt tot een rekruut uit 1938.</p>
-        <p><b>Je schema blijft leidend.</b> Looptraining en rustdagen staan precies zoals je ze kreeg. Alleen het kisten inlopen op donderdag is vervangen door een mars met rugzak, die je op je kisten loopt. Zandzak en optrekstang zitten alleen in blokken die al kracht bevatten: week 1–3 op maandag en vrijdag, week 4–5 op woensdag (moment 2) en vrijdag. Dinsdag en zondag blijven volledige rust. Voelen je benen op vrijdag nog zwaar van de mars, schrap dan eerst een zandzakset.</p>
+        <p><b>Blok 2 (week 7–12).</b> Na je eigen 6 weken gaat het schema door met hetzelfde weekritme. De sets voor optrekken en push-ups rekenen verder vanuit je eindtests; de mars groeit door naar 20 kg boven je startgewicht × 15 km; bij de zandzak komen Kniebeugen met de zak tegen je borst erbij. Week 7 begint met een Cooper-test. Week 10 is bewust licht: daar herstel je van de opbouw. Week 12 is de Prüfungswoche met alle eindtests.</p>
+        <p><b>Belastung.</b> Geef na elke dienst een cijfer van 1 tot 10 voor hoe zwaar het was. Geef je drie diensten achter elkaar een 9 of hoger, dan stelt de app een lichte week voor: één set minder bij elk krachtonderdeel, de mars 25% korter en lopen in tempo A. Die zet je zelf aan of weer uit.</p>
+        <p><b>Laufbuch.</b> Vul bij een loopdienst je afstand en tijd in (tijd als 32 of 31:45). Je ziet je tempo per kilometer, je kilometers per week en een schatting van je Cooper-afstand en je tijd op 2,4 km, berekend uit je snelste loop vanaf 2 km.</p>
+        <p><b>Je schema blijft leidend.</b> Looptraining en rustdagen staan precies zoals je ze kreeg. Alleen het kisten inlopen op donderdag is vervangen door een mars met rugzak, die je op je kisten loopt. In week 1–6 zitten zandzak en optrekstang alleen in blokken die al kracht bevatten: week 1–3 op maandag en vrijdag, week 4–5 op woensdag (moment 2) en vrijdag. Dinsdag en zondag blijven volledige rust. Voelen je benen op vrijdag nog zwaar van de mars, schrap dan eerst een zandzakset.</p>
         <p><b>Volgorde in een blok:</b> eerst de zandzak (zwaarst, techniek vraagt frisheid), dan optrekken, dan het lichaamsgewichtcircuit uit je schema.</p>
         <p><b>Zandzak (${nf(sbKg(), 1)} kg).</b> Het gewicht ligt vast, dus de overload komt uit herhalingen, sets, afstand en moeilijkere varianten. Week 1–2 bouw je de basis met de deadlift, vanaf week 3 til je hem naar de schouder. Week 6 is lichter zodat je fris bent voor de eindtest.</p>
         <table class="sb"><thead><tr><th>Week</th><th>Tillen</th><th>Carry</th></tr></thead><tbody>
-          ${[1, 2, 3, 4, 5, 6].map(w => `<tr><td>${w}</td><td>${SB[w].lift[0].replace(/^Sandsack:? */, '')} ${SB[w].lift[1]}×${SB[w].lift[2]}</td><td>${SB[w].carry ? SB[w].carry[0] + '×' + SB[w].carry[1] + ' m' : 'max test'}</td></tr>`).join('')}
+          ${Array.from({ length: TOTAL }, (_, i) => i + 1).map(w => `<tr><td>${w}</td><td>${SB[w].lift[0].replace(/^Sandsack:? */, '').replace('auf die Schulter', 'Schulter')} ${SB[w].lift[1]}×${SB[w].lift[2]}${SB[w].sq ? ` · Kniebeugen ${SB[w].sq[0]}×${SB[w].sq[1]}` : ''}</td><td>${SB[w].carry ? SB[w].carry[0] + '×' + SB[w].carry[1] + ' m' : 'max test'}</td></tr>`).join('')}
         </tbody></table>
         <p><b>Push-ups.</b> Met een max van 25 is het schema (3×6 tot 3×14) te licht om sterker te worden. Daarom rekent de app per set 50% van je max in week 1, oplopend naar 70% in week 5. Kun je er minder, dan schaalt het net zo goed omlaag (minimaal 3 per set). In week 4 test je opnieuw. Week 6 blijft 2×20 zoals in je schema, uitgevoerd volgens de DCP.</p>
         <p><b>Week gemist?</b> Het schema loopt niet blind door op de kalender. Een week waarin je niets hebt afgevinkt, telt niet mee, en de week daarna ga je verder waar je gebleven was. Eén afgevinkt onderdeel is genoeg om een week te laten meetellen.</p>
@@ -859,11 +1054,20 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       if (diffDays(nk, startKey()) >= 0 && (info(nk) || dir < 0)) { view.date = nk; render(); } return;
     }
     if (b.hasAttribute('data-settings')) return openSettings();
+    if (b.dataset.rpe) {
+      const k = view.date, s = sessionsFor(k)[+b.dataset.si], key = 'm' + s.moment + '.rpe', v = +b.dataset.rpe;
+      state.logs[k] = state.logs[k] || {};
+      if (state.logs[k][key] && state.logs[k][key].v === v) delete state.logs[k][key]; else state.logs[k][key] = { v };
+      if (!Object.keys(state.logs[k]).length) delete state.logs[k];
+      save(); render(); return;
+    }
+    if (b.hasAttribute('data-light')) { const w = +b.dataset.light; state.light = state.light || {}; if (state.light[w]) delete state.light[w]; else state.light[w] = true; save(); render(); toast(state.light[w] ? 'Leichte Woche eingelegt' : 'Leichte Woche aufgehoben'); return; }
+    if (b.hasAttribute('data-backup')) return backupFile();
     if (b.dataset.fig) return openFig(b.dataset.fig);
     const act = b.dataset.act; if (!act) return;
     const { k, s, it0, it } = ctx(b);
     const l = JSON.parse(JSON.stringify(log(k, s, it0) || {}));
-    if (act === 'done') { setLog(k, s, it0, l.done ? null : { done: true }); }
+    if (act === 'done') { if (l.done) delete l.done; else l.done = true; setLog(k, s, it0, Object.keys(l).length ? l : null); }
     else if (act === 'bw') { l.s = l.s || []; l.s[+b.dataset.j] = !l.s[+b.dataset.j]; setLog(k, s, it0, l.s.some(Boolean) ? l : null); if (l.s[+b.dataset.j]) Timer.auto(); }
     else if (act === 'trstep' || act === 'trdone') {
       l.s = l.s || []; const j = +b.dataset.j; const x = l.s[j] || { v: it.target, d: false };
@@ -884,7 +1088,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     else if (act === 'testclear') { setLog(k, s, it0, null); }
     else if (act === 'rkstep' || act === 'rkdone') {
       if (typeof l.kg !== 'number') l.kg = ruckKg(it0.week);
-      if (typeof l.km !== 'number') l.km = RUCK_KM[it0.week];
+      if (typeof l.km !== 'number') l.km = ruckKm(it0.week);
       if (act === 'rkstep') { const f = b.dataset.f; l[f] = Math.max(0, Math.round((l[f] + +b.dataset.by) * 10) / 10); }
       else l.done = !l.done;
       setLog(k, s, it0, l);
@@ -896,6 +1100,22 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     if (e.key === 'Enter' && e.target.id && e.target.id.startsWith('t-')) { const b = e.target.parentElement.querySelector('[data-act="test"]'); if (b) b.click(); }
   });
 
+  const inFrame = (() => { try { return window.top !== window.self; } catch (e) { return true; } })();
+  function backupJson() { return JSON.stringify({ app: 'setboek', v: 1, start: state.start, ruckKg: state.ruckKg, pushMax: state.pushMax, sbKg: state.sbKg, bar: state.bar, richt: state.richt, light: state.light, logs: state.logs }); }
+  async function backupFile() {
+    const name = 'setboek-backup-' + today() + '.json';
+    const blob = new Blob([backupJson()], { type: 'application/json' });
+    try {
+      const file = new File([blob], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        await navigator.share({ files: [file], title: 'Setboek back-up' });
+      } else {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+        document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      }
+      state.lastBackup = today(); save(); render(); toast('Back-up gemaakt: ' + name);
+    } catch (err) { if (err && err.name === 'AbortError') return; toast('Back-up maken lukte niet. Gebruik Kopiëren als alternatief.'); }
+  }
   function openSettings(first) {
     const st = startKey();
     $('#overlay').innerHTML = `<div class="scrim" ${first ? '' : 'data-close'}><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="set-h">
@@ -913,6 +1133,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       <div class="row2">${first ? '<span></span>' : '<button class="btn ghost" type="button" data-cancel>Schließen</button>'}<button class="btn" type="button" data-savestart>${first ? 'Beginnen' : 'Speichern'}</button></div>
       <hr style="border:0;border-top:1px solid var(--line);width:100%;margin:4px 0">
       <span class="label">Voortgang overzetten of back-up maken</span>
+      ${inFrame ? '' : `<button class="btn" type="button" data-backup style="width:100%">Back-up opslaan</button><p class="hint">${state.lastBackup ? 'Laatste back-up: ' + fromKey(state.lastBackup).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }) + '.' : 'Nog geen back-up gemaakt.'} Terugzetten gaat via Importeren en dan het bestand kiezen.</p>`}
       <div class="row2"><button class="btn ghost" type="button" data-export>Kopiëren</button><button class="btn ghost" type="button" data-import>Importeren</button></div>
       <div id="io-zone" class="io"></div>
       <hr style="border:0;border-top:1px solid var(--line);width:100%;margin:4px 0">
@@ -929,8 +1150,9 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         state.bar = $('#set-bar').checked; state.setupDone = true;
         state.start = mondayOf(v); save(); view.date = null; closeSheet(); render(); toast('Instellingen opgeslagen');
       }
+      if (e.target.closest('[data-backup]')) return backupFile();
       if (e.target.closest('[data-export]')) {
-        const json = JSON.stringify({ app: 'setboek', v: 1, start: state.start, ruckKg: state.ruckKg, pushMax: state.pushMax, sbKg: state.sbKg, bar: state.bar, richt: state.richt, logs: state.logs });
+        const json = backupJson();
         const show = () => { $('#io-zone').innerHTML = `<p class="hint">Kopiëren lukte hier niet automatisch. Selecteer de tekst hieronder en kopieer hem zelf.</p><textarea id="io-out" readonly>${esc(json)}</textarea>`; const t = $('#io-out'); t.focus(); t.select(); };
         try { navigator.clipboard.writeText(json).then(() => { $('#io-zone').innerHTML = '<p class="hint">Gekopieerd. Plak het in de nieuwe app bij Importeren, of bewaar het in een notitie als back-up.</p>'; }, show); } catch (err) { show(); }
       }
@@ -943,7 +1165,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       if (e.target.closest('[data-doimport]')) {
         let v = null; try { v = JSON.parse($('#io-in').value.trim()); } catch (err) {}
         if (!v || v.app !== 'setboek' || typeof v.logs !== 'object') { toast('Dit is geen Setboek-voortgang. Kopieer hem opnieuw vanuit de oude app.'); return; }
-        state = { start: v.start || state.start, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : 25, sbKg: typeof v.sbKg === 'number' ? v.sbKg : undefined, bar: v.bar !== false, richt: v.richt && typeof v.richt === 'object' ? v.richt : {}, setupDone: true, logs: v.logs };
+        state = { start: v.start || state.start, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : 25, sbKg: typeof v.sbKg === 'number' ? v.sbKg : undefined, bar: v.bar !== false, richt: v.richt && typeof v.richt === 'object' ? v.richt : {}, light: v.light && typeof v.light === 'object' ? v.light : {}, setupDone: true, logs: v.logs };
         save(); view.date = null; closeSheet(); render(); toast('Voortgang ingelezen');
       }
       if (e.target.closest('[data-askreset]')) {
@@ -981,7 +1203,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       'Unterarmstütz': 'plank', 'Seitstütz rechts': 'side', 'Seitstütz links': 'side', 'Superman': 'superman', 'Bergsteiger': 'climber',
       'Klimmzüge': 'pull', 'Klimmzüge (Obergriff)': 'pull', 'Klimmzüge (Untergriff, eng)': 'pull', 'Klimmzüge: Leistungsprüfung': 'pull',
       'Sandsack: Kreuzheben': 'sbdl', 'Sandsack auf die Schulter': 'sbsh', 'Sandsack tragen': 'carry', 'Sandsack tragen: Höchstleistung': 'carry',
-      'Gepäckmarsch': 'march', 'Dauerlauf': 'run', 'Intensiver Dauerlauf': 'run', 'Intervall': 'run2', 'Intervall in Stiefeln': 'run2',
+      'Gepäckmarsch': 'march', 'Dauerlauf': 'run', 'Intensiver Dauerlauf': 'run', 'Intervall': 'run2', 'Intervall in Stiefeln': 'run2', 'Cooper-Test': 'run2', 'Sandsack: Kniebeugen': 'squat',
     };
     const keyFor = name => { let n = String(name); const neg = n.endsWith(': Negative'); if (neg) n = n.slice(0, -10); const k = MAP[n]; return k ? { k, neg } : null; };
     return { A, keyFor };
