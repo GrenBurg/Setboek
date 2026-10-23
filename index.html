@@ -229,6 +229,11 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
 .io { display: flex; flex-direction: column; gap: 8px; }
 .io textarea { font: 12px/1.4 var(--f-body); width: 100%; min-height: 110px; padding: 8px; border: 1px solid var(--ink); border-radius: 0; background: var(--bg); color: var(--ink); resize: vertical; }
 .io input[type=file] { font: 13px var(--f-body); color: var(--muted); max-width: 100%; }
+.nl { display: block; font: italic 400 12.5px/1.3 var(--f-body); color: var(--muted); letter-spacing: 0; text-transform: none; margin-top: 2px; }
+.shead .nl { margin-top: 0; }
+.blocks .nlw { font: italic 12px var(--f-body); color: var(--muted); }
+.check { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.check input { width: 22px; height: 22px; accent-color: var(--ink); }
 </style>
 
 <div class="wrap" id="app"></div>
@@ -284,8 +289,15 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   const pull = () => ({ k: 'pull', id: 'pull', name: 'Optrekken', tag: 'bar' });
   const pushTest = () => ({ k: 'test', id: 'pushtest', name: 'Liegestütze: Leistungsprüfung', unit: '×', tag: 'test', cue: 'Na de optrektest en een paar minuten rust. Borst raakt bijna de grond, armen volledig gestrekt, lichaam recht. Doorgaan tot de techniek breekt. Week 4–5 rekenen met deze uitslag.' });
 
+  const sbKg = () => (typeof state.sbKg === 'number' ? state.sbKg : 70);
+  const hasBar = () => state.bar !== false;
+  function hasGear(it) {
+    if (it.tag === 'sand' && sbKg() <= 0) return false;
+    if ((it.k === 'pull' || it.id === 'pulltest') && !hasBar()) return false;
+    return true;
+  }
   function plan(week, dow) {
-    const S = (moment, title, items) => ({ moment, title, items });
+    const S = (moment, title, items) => ({ moment, title, items: items.filter(hasGear) });
     switch (week) {
       case 1: return [
         [S(1, 'Dauerlauf und Kraft', [duur('run', 15), pullTest(), ...sandbag(1), pull(), ...krachtMa(10, 6, 10)])],
@@ -350,6 +362,27 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       ][dow];
     }
     return [];
+  }
+
+  // ---- Nederlandse namen (klein onder de Duitse) ----
+  const NL = {
+    'Kniebeugen': 'air squats', 'Liegestütze': 'push-ups', 'Ausfallschritte': 'lunges', 'Hampelmann': 'starjumps',
+    'Unterarmstütz': 'planken', 'Seitstütz rechts': 'side plank rechts', 'Seitstütz links': 'side plank links',
+    'Superman': 'superman', 'Bergsteiger': 'mountain climbers',
+    'Klimmzüge': 'optrekken', 'Klimmzüge (Obergriff)': 'pull-ups, bovenhands', 'Klimmzüge (Untergriff, eng)': 'narrow grip chin-ups, onderhands',
+    'Klimmzüge: Leistungsprüfung': 'optrekken, max test', 'Liegestütze: Leistungsprüfung': 'push-ups, max test',
+    'Sandsack: Kreuzheben': 'zandzak deadlift', 'Sandsack auf die Schulter': 'zandzak naar de schouder',
+    'Sandsack tragen': 'zandzak dragen (bear-hug carry)', 'Sandsack tragen: Höchstleistung': 'zandzak dragen, max afstand',
+    'Gepäckmarsch': 'mars met rugzak', 'Dauerlauf': 'duurloop', 'Intensiver Dauerlauf': 'intensieve duurloop',
+    'Intervall': 'interval', 'Intervall in Stiefeln': 'interval op kisten',
+    'Dauerlauf und Kraft': 'duurloop en kracht', 'Kraft und Rumpf': 'kracht en core stability', 'Kraft': 'kracht',
+    'gehen': 'wandelen', 'wiederholen': 'herhalen',
+  };
+  function nl(name) {
+    let n = String(name), suf = '';
+    if (n.endsWith(': Negative')) { n = n.slice(0, -10); suf = ', negatieven'; }
+    const t = NL[n];
+    return t ? `<span class="nl">${esc(t + suf)}</span>` : '';
   }
 
   // ================= STATE =================
@@ -437,9 +470,11 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   }
   function resolve(k, it) {
     if (it.k === 'bw' && it.id === 'pu') {
-      const i = info(k); if (!i || i.week >= 6) return it;
-      const M = pushMaxAt(k), pct = { 1: .5, 2: .55, 3: .6, 4: .65, 5: .7 }[i.week];
-      const reps = Math.max(it.reps, Math.round(M * pct));
+      const i = info(k); if (!i) return it;
+      const M = pushMaxAt(k);
+      if (i.week >= 6) return M >= 25 ? it : { ...it, note: `M: 2×20, V: 2×10. Uitvoering zoals bij de DCP. Haal je dat nog niet, doe dan 2 sets van zoveel als je net haalt (je max was ${M}).` };
+      const pct = { 1: .5, 2: .55, 3: .6, 4: .65, 5: .7 }[i.week];
+      const reps = Math.max(3, Math.round(M * pct));
       return reps === it.reps ? it : { ...it, reps, note: `Schema zegt ${it.sets}×${it.reps}. Aangepast naar ${Math.round(pct * 100)}% van je max (${M}). Rustig zakken, borst bijna op de grond.` };
     }
     if (it.k !== 'pull') return it;
@@ -504,7 +539,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
           if (!snap.exists) { if (Object.keys(state.logs).length || state.start) save(); render(); return; }
         }
         const v = snap.data();
-        if (v && v.logs) { state = { start: v.start || null, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : undefined, logs: JSON.parse(JSON.stringify(v.logs)) }; actCache = null; try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
+        if (v && v.logs) { state = JSON.parse(JSON.stringify(v)); actCache = null; try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
         render();
       }, () => { mode = 'local'; render(); });
     } catch (e) {}
@@ -565,7 +600,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     }
     ss.forEach((s, si) => {
       const p = s.items.filter(it => itemDone(k, s, it)).length;
-      h += `<section class="session">${p === s.items.length ? '<span class="stamp">Erledigt</span>' : ''}<div class="shead"><h2>${esc(s.title)}</h2><span class="label">${ss.length > 1 ? 'Dienst ' + s.moment + ' · ' : ''}${p}/${s.items.length}</span></div><div class="items">`;
+      h += `<section class="session">${p === s.items.length ? '<span class="stamp">Erledigt</span>' : ''}<div class="shead"><h2>${esc(s.title)}${nl(s.title)}</h2><span class="label">${ss.length > 1 ? 'Dienst ' + s.moment + ' · ' : ''}${p}/${s.items.length}</span></div><div class="items">`;
       s.items.forEach((it0, ii) => { h += renderItem(k, s, it0, si, ii); });
       h += `</div></section>`;
     });
@@ -573,7 +608,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   }
 
   function tagHtml(it) {
-    if (it.tag === 'sand') return '<span class="badge sand">70 kg</span>';
+    if (it.tag === 'sand') return `<span class="badge sand">${nf(sbKg(), 1)} kg</span>`;
     if (it.tag === 'bar') return '<span class="badge bar">Reck</span>';
     if (it.tag === 'test') return '<span class="badge test">Prüfung</span>';
     return '';
@@ -583,18 +618,18 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     const it = resolve(k, it0), l = log(k, s, it0) || {};
     const ref = `data-si="${si}" data-ii="${ii}"`;
     if (it.k === 'run') {
-      return `<div class="item run"><div class="ih"><span class="iname">${esc(it.title)}</span></div>
-        <div class="blocks">${it.blocks.map(b => `<div><b class="${b[2] === 'rep' ? 'rep' : ''}">${esc(b[0])}</b><span class="${b[2] === 'rep' ? 'rep' : ''}">${esc(b[1])}</span></div>`).join('')}</div>
+      return `<div class="item run"><div class="ih"><span class="iname">${esc(it.title)}${nl(it.title)}</span></div>
+        <div class="blocks">${it.blocks.map(b => `<div><b class="${b[2] === 'rep' ? 'rep' : ''}">${esc(b[0])}</b><span class="${b[2] === 'rep' ? 'rep' : ''}">${esc(b[1])}${NL[b[1]] ? ` <span class="nlw">${NL[b[1]]}</span>` : ''}</span></div>`).join('')}</div>
         <div class="bubbles"><button class="bub big ${l.done ? 'on' : ''}" type="button" data-act="done" ${ref}>${l.done ? 'Erledigt' : 'Abzeichnen'}</button></div></div>`;
     }
     if (it.k === 'check') {
-      return `<div class="item"><div class="ih"><span class="iname">${esc(it.name)}</span></div>${it.cue ? `<p class="cue">${esc(it.cue)}</p>` : ''}
+      return `<div class="item"><div class="ih"><span class="iname">${esc(it.name)}${nl(it.name)}</span></div>${it.cue ? `<p class="cue">${esc(it.cue)}</p>` : ''}
         <div class="bubbles"><button class="bub big ${l.done ? 'on' : ''}" type="button" data-act="done" ${ref}>${l.done ? 'Erledigt' : 'Abzeichnen'}</button></div></div>`;
     }
     if (it.k === 'bw') {
       const arr = l.s || [];
       const meta = `${it.sets} × ${it.reps}${it.unit === 's' ? '″' : ''}${it.side ? ' L+R' : ''}`;
-      return `<div class="item"><div class="ih"><span class="iname">${esc(it.name)}</span><span class="imeta">${meta}</span></div>
+      return `<div class="item"><div class="ih"><span class="iname">${esc(it.name)}${nl(it.name)}</span><span class="imeta">${meta}</span></div>
         ${it.note ? `<p class="cue">${esc(it.note)}</p>` : ''}
         <div class="bubbles">${Array.from({ length: it.sets }, (_, j) => `<button class="bub ${arr[j] ? 'on' : ''}" type="button" data-act="bw" data-j="${j}" ${ref} aria-label="Set ${j + 1}">${it.reps}${it.unit === 's' ? '″' : ''}</button>`).join('')}</div></div>`;
     }
@@ -605,18 +640,18 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       const what = !prevW ? 'Startweek.' : tk > prevW[0] ? 'Deze week gaat het gewicht omhoog, de afstand blijft gelijk.' : 'Deze week gaat de afstand omhoog, het gewicht blijft gelijk.';
       const row = (f, lab, v, step, unit) => `<div class="tr"><span class="sn">${lab}</span>
         <div class="step"><button type="button" data-act="rkstep" data-f="${f}" data-by="${-step}" ${ref} aria-label="${lab} minder">−</button><span>${nf(v, 1)} ${unit}</span><button type="button" data-act="rkstep" data-f="${f}" data-by="${step}" ${ref} aria-label="${lab} meer">+</button></div><span></span></div>`;
-      return `<div class="item run"><div class="ih"><span class="iname">Gepäckmarsch</span><span class="imeta">${nf(tk, 1)} kg × ${tkm} km</span></div>
+      return `<div class="item run"><div class="ih"><span class="iname">Gepäckmarsch${nl('Gepäckmarsch')}</span><span class="imeta">${nf(tk, 1)} kg × ${tkm} km</span></div>
         <p class="cue">${what} Op je kisten, stevig doorwandelen op ongeveer 6 km/u (≈ ${Math.round(tkm * 10)} min). Rugzak hoog en strak tegen je rug. Pijn in scheen of voet, of blaren: inkorten. Liep je met ander gewicht of een andere afstand, pas het hieronder aan.</p>
         <div class="trs">${row('kg', 'Gewicht', kg, 2.5, 'kg')}${row('km', 'Strecke', km, 0.5, 'km')}</div>
         <div class="bubbles"><button class="bub big ${l.done ? 'on' : ''}" type="button" data-act="rkdone" ${ref}>${l.done ? 'Erledigt · ' + nf(kg * km, 0) + ' kg·km' : 'Abzeichnen'}</button></div></div>`;
     }
     if (it.k === 'pull-wait') {
-      return `<div class="item"><div class="ih"><span class="iname">Klimmzüge ${tagHtml(it)}</span></div><p class="cue">Vul eerst de max test hierboven in. Daarna rekent de app je sets uit.</p></div>`;
+      return `<div class="item"><div class="ih"><span class="iname">Klimmzüge ${tagHtml(it)}${nl('Klimmzüge')}</span></div><p class="cue">Vul eerst de max test hierboven in. Daarna rekent de app je sets uit.</p></div>`;
     }
     if (it.k === 'tr') {
       const arr = l.s || [];
       const step = it.step || 1;
-      return `<div class="item"><div class="ih"><span class="iname">${esc(it.name)}${tagHtml(it)}</span><span class="imeta">${it.sets} × ${it.target}${it.unit === 'm' ? ' m' : ''}</span></div>
+      return `<div class="item"><div class="ih"><span class="iname">${esc(it.name)}${tagHtml(it)}${nl(it.name)}</span><span class="imeta">${it.sets} × ${it.target}${it.unit === 'm' ? ' m' : ''}</span></div>
         ${it.cue ? `<p class="cue">${esc(it.cue)}</p>` : ''}
         <div class="trs">${Array.from({ length: it.sets }, (_, j) => {
           const x = arr[j] || {}; const v = typeof x.v === 'number' ? x.v : it.target;
@@ -627,7 +662,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     }
     if (it.k === 'test') {
       const done = typeof l.v === 'number';
-      return `<div class="item"><div class="ih"><span class="iname">${esc(it.name)}${tagHtml(it)}</span>${done ? `<span class="testdone">${l.v}${it.unit === 'm' ? ' m' : '×'}</span>` : ''}</div>
+      return `<div class="item"><div class="ih"><span class="iname">${esc(it.name)}${tagHtml(it)}${nl(it.name)}</span>${done ? `<span class="testdone">${l.v}${it.unit === 'm' ? ' m' : '×'}</span>` : ''}</div>
         <p class="cue">${esc(it.cue)}</p>
         ${done ? `<div class="bubbles"><button class="btn ghost" type="button" data-act="testclear" ${ref}>Berichtigen</button></div>`
           : `<div class="testrow"><input id="t-${si}-${ii}" type="text" inputmode="numeric" placeholder="${it.unit === 'm' ? 'Meter' : 'Anzahl'}" autocomplete="off"><button class="btn" type="button" data-act="test" ${ref}>Eintragen</button></div>`}
@@ -699,17 +734,18 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         <section class="panel"><span class="label">Sandsack tragen (m)</span>${bars(A.map(x => x.carry), v => v, 'var(--sand)')}</section>
         <section class="panel"><span class="label">Sandsack heben</span>${bars(A.map(x => x.lifts), v => v, 'var(--sand)')}</section>
       </div>
-      ${cm.length ? `<section class="panel"><div class="ph"><h2>Sandsack tragen</h2><span class="big">${cm[cm.length - 1].v} m</span></div><p class="hint">Met 70 kg in één keer, zonder neerzetten.</p></section>` : ''}
+      ${cm.length ? `<section class="panel"><div class="ph"><h2>Sandsack tragen</h2><span class="big">${cm[cm.length - 1].v} m</span></div><p class="hint">Met ${nf(sbKg(), 1)} kg in één keer, zonder neerzetten.</p></section>` : ''}
 
       <section class="panel"><details><summary>Dienstvorschrift</summary><div class="explain" style="margin-top:12px">
         <p><b>Namen.</b> Kniebeugen = air squats, Liegestütze = push-ups, Ausfallschritte = lunges, Hampelmann = starjumps, Unterarmstütz = plank, Seitstütz = side plank, Bergsteiger = mountain climbers, Klimmzüge im Obergriff = pull-ups, im Untergriff eng = narrow grip chin-ups, Kreuzheben = deadlift, Gepäckmarsch = mars met rugzak, Stiefel = kisten.</p>
+        <p><b>Materiaal.</b> Het gewicht van je zandzak en of je een optrekstang hebt, stel je in bij het tandwiel. Zonder zandzak of stang verdwijnen die onderdelen uit het schema; de rest blijft hetzelfde. Is de zak lichter dan 40 kg, doe dan bij elk zandzakonderdeel gerust 2 herhalingen of 10 m extra.</p>
         <p><b>Je schema blijft leidend.</b> Looptraining en rustdagen staan precies zoals je ze kreeg. Alleen het kisten inlopen op donderdag is vervangen door een mars met rugzak, die je op je kisten loopt. Zandzak en optrekstang zitten alleen in blokken die al kracht bevatten: week 1–3 op maandag en vrijdag, week 4–5 op woensdag (moment 2) en vrijdag. Dinsdag en zondag blijven volledige rust. Voelen je benen op vrijdag nog zwaar van de mars, schrap dan eerst een zandzakset.</p>
         <p><b>Volgorde in een blok:</b> eerst de zandzak (zwaarst, techniek vraagt frisheid), dan optrekken, dan het lichaamsgewichtcircuit uit je schema.</p>
-        <p><b>Zandzak van 70 kg.</b> Het gewicht ligt vast, dus de overload komt uit herhalingen, sets, afstand en moeilijkere varianten. Week 1–2 bouw je de basis met de deadlift, vanaf week 3 til je hem naar de schouder. Week 6 is lichter zodat je fris bent voor de eindtest.</p>
+        <p><b>Zandzak (${nf(sbKg(), 1)} kg).</b> Het gewicht ligt vast, dus de overload komt uit herhalingen, sets, afstand en moeilijkere varianten. Week 1–2 bouw je de basis met de deadlift, vanaf week 3 til je hem naar de schouder. Week 6 is lichter zodat je fris bent voor de eindtest.</p>
         <table class="sb"><thead><tr><th>Week</th><th>Tillen</th><th>Carry</th></tr></thead><tbody>
           ${[1, 2, 3, 4, 5, 6].map(w => `<tr><td>${w}</td><td>${SB[w].lift[0].replace(/^Sandsack:? */, '')} ${SB[w].lift[1]}×${SB[w].lift[2]}</td><td>${SB[w].carry ? SB[w].carry[0] + '×' + SB[w].carry[1] + ' m' : 'max test'}</td></tr>`).join('')}
         </tbody></table>
-        <p><b>Push-ups.</b> Met een max van 25 is het schema (3×6 tot 3×14) te licht om sterker te worden. Daarom rekent de app per set 50% van je max in week 1, oplopend naar 70% in week 5, maar nooit minder dan wat je schema voorschrijft. In week 4 test je opnieuw. Week 6 blijft 2×20 zoals in je schema, uitgevoerd volgens de DCP.</p>
+        <p><b>Push-ups.</b> Met een max van 25 is het schema (3×6 tot 3×14) te licht om sterker te worden. Daarom rekent de app per set 50% van je max in week 1, oplopend naar 70% in week 5. Kun je er minder, dan schaalt het net zo goed omlaag (minimaal 3 per set). In week 4 test je opnieuw. Week 6 blijft 2×20 zoals in je schema, uitgevoerd volgens de DCP.</p>
         <p><b>Week gemist?</b> Het schema loopt niet blind door op de kalender. Een week waarin je niets hebt afgevinkt, telt niet mee, en de week daarna ga je verder waar je gebleven was. Eén afgevinkt onderdeel is genoeg om een week te laten meetellen.</p>
         <p><b>Mars met rugzak.</b> De belasting is gewicht × afstand. Elke week gaat er één van de twee omhoog: de afstand van 5 naar 10 km, het gewicht om de twee weken met 2,5 kg vanaf je startgewicht (instelbaar). Zo groeit de totale belasting geleidelijk, en krijgen voeten, schenen en rug tijd om mee te groeien. Juist daar ontstaan bij marsen de meeste overbelastingsklachten.</p>
         <p><b>Pull-ups en chin-ups.</b> Je wisselt af: op de eerste krachtdag van de week pull-ups (bovenhands), op vrijdag narrow grip chin-ups (onderhands, smal). Beide trainen dezelfde trekbeweging, maar chin-ups leunen meer op je biceps en pull-ups meer op je brede rugspieren. Zo train je allebei en krijgen ellebogen en pezen niet twee keer per week exact dezelfde belasting. Chin-ups gaan meestal iets makkelijker; haal je alle sets, doe dan +1 bij de laatste.</p>
@@ -769,23 +805,27 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     if (e.key === 'Enter' && e.target.id && e.target.id.startsWith('t-')) { const b = e.target.parentElement.querySelector('[data-act="test"]'); if (b) b.click(); }
   });
 
-  function openSettings() {
+  function openSettings(first) {
     const st = startKey();
-    $('#overlay').innerHTML = `<div class="scrim" data-close><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="set-h">
-      <h2 id="set-h">Einstellungen</h2>
+    $('#overlay').innerHTML = `<div class="scrim" ${first ? '' : 'data-close'}><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="set-h">
+      <h2 id="set-h">${first ? 'Meldung zum Dienst' : 'Einstellungen'}</h2>
+      ${first ? '<p class="hint">Welkom bij Setboek. Vul in wat je hebt en wat je kunt, dan rekent de app je schema daarop uit. Je kunt dit later altijd aanpassen bij het tandwiel.</p>' : ''}
       <div class="field"><label class="label" for="set-start">Start van week 1 (maandag)</label><input id="set-start" type="date" value="${st}"></div>
       <p class="hint">Kies je een andere dag, dan schuift de app hem naar de maandag van die week.</p>
       <div class="field"><label class="label" for="set-kg">Startgewicht rugzak (kg)</label><input id="set-kg" type="text" inputmode="decimal" value="${nf(state.ruckKg || 10, 1)}"></div>
       <p class="hint">Week 1–2 met dit gewicht, daarna om de twee weken 2,5 kg erbij.</p>
       <div class="field"><label class="label" for="set-push">Push-ups: je max bij de start</label><input id="set-push" type="text" inputmode="numeric" value="${state.pushMax || 25}"></div>
-      <p class="hint">Je push-up sets rekenen hiermee tot de hertest in week 4.</p>
-      <div class="row2"><button class="btn ghost" type="button" data-cancel>Schließen</button><button class="btn" type="button" data-savestart>Speichern</button></div>
+      <p class="hint">Zoveel nette push-ups als je in één keer haalt. Je sets rekenen hiermee tot de hertest in week 4.</p>
+      <div class="field"><label class="label" for="set-sb">Gewicht zandzak (kg)</label><input id="set-sb" type="text" inputmode="decimal" value="${nf(sbKg(), 1)}"></div>
+      <p class="hint">Vul 0 in als je geen zandzak hebt.</p>
+      <label class="check"><input id="set-bar" type="checkbox" ${hasBar() ? 'checked' : ''}>Ik heb een optrekstang</label>
+      <div class="row2">${first ? '<span></span>' : '<button class="btn ghost" type="button" data-cancel>Schließen</button>'}<button class="btn" type="button" data-savestart>${first ? 'Beginnen' : 'Speichern'}</button></div>
       <hr style="border:0;border-top:1px solid var(--line);width:100%;margin:4px 0">
       <span class="label">Voortgang overzetten of back-up maken</span>
       <div class="row2"><button class="btn ghost" type="button" data-export>Kopiëren</button><button class="btn ghost" type="button" data-import>Importeren</button></div>
       <div id="io-zone" class="io"></div>
       <hr style="border:0;border-top:1px solid var(--line);width:100%;margin:4px 0">
-      <div id="reset-zone"><button class="btn ghost danger" type="button" data-askreset style="width:100%">Alle voortgang wissen</button></div>
+      ${first ? '' : `<div id="reset-zone"><button class="btn ghost danger" type="button" data-askreset style="width:100%">Alle voortgang wissen</button></div>`}
     </div></div>`;
     const sc = $('#overlay .scrim');
     sc.addEventListener('click', e => {
@@ -794,10 +834,12 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         const v = $('#set-start').value; if (!v) return;
         const kg = parseFloat(String($('#set-kg').value).replace(',', '.')); if (isFinite(kg) && kg > 0) state.ruckKg = Math.round(kg * 2) / 2;
         const pm = parseInt($('#set-push').value, 10); if (isFinite(pm) && pm > 0) state.pushMax = pm;
+        const sb = parseFloat(String($('#set-sb').value).replace(',', '.')); if (isFinite(sb) && sb >= 0) state.sbKg = Math.round(sb * 2) / 2;
+        state.bar = $('#set-bar').checked; state.setupDone = true;
         state.start = mondayOf(v); save(); view.date = null; closeSheet(); render(); toast('Instellingen opgeslagen');
       }
       if (e.target.closest('[data-export]')) {
-        const json = JSON.stringify({ app: 'setboek', v: 1, start: state.start, ruckKg: state.ruckKg, pushMax: state.pushMax, logs: state.logs });
+        const json = JSON.stringify({ app: 'setboek', v: 1, start: state.start, ruckKg: state.ruckKg, pushMax: state.pushMax, sbKg: state.sbKg, bar: state.bar, logs: state.logs });
         const show = () => { $('#io-zone').innerHTML = `<p class="hint">Kopiëren lukte hier niet automatisch. Selecteer de tekst hieronder en kopieer hem zelf.</p><textarea id="io-out" readonly>${esc(json)}</textarea>`; const t = $('#io-out'); t.focus(); t.select(); };
         try { navigator.clipboard.writeText(json).then(() => { $('#io-zone').innerHTML = '<p class="hint">Gekopieerd. Plak het in de nieuwe app bij Importeren, of bewaar het in een notitie als back-up.</p>'; }, show); } catch (err) { show(); }
       }
@@ -810,7 +852,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       if (e.target.closest('[data-doimport]')) {
         let v = null; try { v = JSON.parse($('#io-in').value.trim()); } catch (err) {}
         if (!v || v.app !== 'setboek' || typeof v.logs !== 'object') { toast('Dit is geen Setboek-voortgang. Kopieer hem opnieuw vanuit de oude app.'); return; }
-        state = { start: v.start || state.start, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : 25, logs: v.logs };
+        state = { start: v.start || state.start, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : 25, sbKg: typeof v.sbKg === 'number' ? v.sbKg : undefined, bar: v.bar !== false, setupDone: true, logs: v.logs };
         save(); view.date = null; closeSheet(); render(); toast('Voortgang ingelezen');
       }
       if (e.target.closest('[data-askreset]')) {
@@ -910,9 +952,12 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   })();
 
   loadLocal();
+  const firstRun = !state.setupDone && !Object.keys(state.logs || {}).length;
+  if (!firstRun && !state.setupDone) { state.setupDone = true; }
   if (!state.start) state.start = mondayOf(today());
   if (!state.pushMax) state.pushMax = 25;
   render();
+  if (firstRun) openSettings(true);
   connect();
 })();
 </script>
