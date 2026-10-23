@@ -960,27 +960,28 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   // ================= ABBILDUNGEN (originele figuren uit de Sportvorschrift für das Heer, 1938) =================
   const FIG = (() => {
     const A = {
-      squat: { img: 22, vgl: true, orig: 'Spreidstand, doorzakken in diepe hurkzit', txt: ['Voeten op heupbreedte, hielen blijven aan de grond.', 'Heupen naar achteren en omlaag tot je dijen horizontaal zijn, armen naar voren.', 'Rug recht, knieën wijzen in de richting van je tenen.'] },
+      squat: { txt: ['Voeten op heupbreedte, hielen blijven aan de grond.', 'Heupen naar achteren en omlaag tot je dijen horizontaal zijn, armen naar voren.', 'Rug recht, knieën wijzen in de richting van je tenen.'] },
       pushup: { img: 42, orig: 'Opdrukken, armen langzaam buigen en snel strekken', txt: ['Handen iets breder dan je schouders, lichaam één rechte lijn van hielen tot hoofd.', 'Zak tot je borst bijna de grond raakt, ellebogen schuin naar achteren.', 'Duw op tot je armen gestrekt zijn. Heupen niet laten hangen.'] },
       lunge: { img: 52, orig: 'Gaan met diepe uitvalspassen', txt: ['Grote stap naar voren, bovenlichaam rechtop.', 'Zak tot je achterste knie net boven de grond is, voorste knie boven je enkel.', 'Duw terug en wissel van been (L+R).'] },
-      star: { img: 46, orig: 'Spreidsprong', txt: ['Spring tegelijk benen uit elkaar en armen omhoog.', 'Spring terug: benen samen, armen langs je lichaam.', 'Licht op de voorvoeten blijven.'] },
+      star: { img: 11, orig: 'Sprong met armen omhoog en benen gespreid (hampelmann)', txt: ['Spring tegelijk benen uit elkaar en armen omhoog.', 'Spring terug: benen samen, armen langs je lichaam.', 'Licht op de voorvoeten blijven.'] },
       plank: { img: 7, vgl: true, orig: 'Opdrukhouding (uitgangshouding)', txt: ['Zoals de afbeelding, maar op je onderarmen: ellebogen recht onder je schouders.', 'Lichaam één rechte lijn, buik en billen aangespannen.', 'Houd de aangegeven tijd vast en blijf rustig ademen.'] },
       side: { txt: ['Op één onderarm, elleboog onder je schouder, voeten op elkaar.', 'Heupen omhoog tot je lichaam een rechte lijn is.', 'Houd vast. Bovenste arm mag omhoog voor extra spanning.'] },
       superman: { img: 33, vgl: true, orig: 'Buiklig, snel opheffen van de romp', txt: ['Op je buik, armen gestrekt naar voren.', 'Til tegelijk armen, borst en benen een stukje op.', 'Kort vasthouden, rustig laten zakken. Kijk naar de grond.'] },
-      climber: { img: 38, vgl: true, orig: 'Opdrukhouding, hurken en benen strekken', txt: ['Begin in de opdrukhouding, handen onder je schouders.', 'Trek afwisselend snel een knie naar je borst.', 'Heupen laag houden, telt per kant (L+R).'] },
+      climber: { img: 38, vgl: true, orig: 'Opdrukhouding, hurken en benen strekken, ook één been tegelijk', txt: ['Begin in de opdrukhouding, handen onder je schouders.', 'Trek afwisselend snel een knie naar je borst.', 'Heupen laag houden, telt per kant (L+R).'] },
       pull: { txt: ['Hang met gestrekte armen.', 'Trek op tot je kin boven de stang is, schouders laag houden.', 'Gecontroleerd terug naar gestrekte armen.'] },
       sbdl: { txt: ['Zak tussen of vlak voor je voeten, heupen naar achteren, borst omhoog.', 'Pak de zak onderaan vast en sta op door je heupen naar voren te duwen.', 'Rechtop staan en gecontroleerd neerzetten. Rug blijft recht.'] },
-      sbsh: { txt: ['Oppakken zoals bij het Kreuzheben en de zak op je dijen leggen.', 'Heupen krachtig strekken en de zak met borst en armen op één schouder werken.', 'Rechtop staan, neerzetten en de volgende keer de andere schouder.'] },
+      sbsh: { img: 64, vgl: true, orig: 'Kogelhalter opzwaaien naar de schouder', txt: ['Oppakken zoals bij het Kreuzheben en de zak op je dijen leggen.', 'Heupen krachtig strekken en de zak met borst en armen op één schouder werken.', 'Rechtop staan, neerzetten en de volgende keer de andere schouder.'] },
       carry: { txt: ['Zak hoog tegen je borst, armen er omheen.', 'Rechtop lopen met korte, rustige passen.', 'Neerzetten met rechte rug, door de knieën.'] },
       march: { img: 50, vgl: true, orig: 'Snelwandelen', txt: ['Rugzak hoog en strak, heupband vast.', 'Stevig doorwandelen, ongeveer 6 km/u: hiel eerst neerzetten en afrollen naar de tenen.', 'Bij scheen- of voetpijn of blaren: inkorten.'] },
-      run: { img: 48, orig: 'Hardlopen', txt: ['Tempo A: rustig, je kunt praten. B: stevig. C: hard, alleen korte stukken.', 'Licht voorover, armen ontspannen meezwaaien.', 'Wandelstukken horen erbij: dat is herstel.'] },
+      run2: { img: 92, orig: 'Sneller lopen: bovenlichaam meer naar voren, armen zwaaien krachtiger', txt: ['Tempo B: stevig. C: hard, alleen de korte stukken.', 'Hoe harder, hoe meer je bovenlichaam naar voren komt en hoe krachtiger je armen zwaaien.', 'De wandelstukken tussendoor zijn herstel: echt rustig doen.'] },
+      run: { img: 91, orig: 'Het lopen: benen ver naar voren zwaaien, bij rustig lopen bovenlichaam rechtop', txt: ['Tempo A: rustig, je kunt praten. B: stevig. C: hard, alleen korte stukken.', 'Licht voorover, armen ontspannen meezwaaien.', 'Wandelstukken horen erbij: dat is herstel.'] },
     };
     const MAP = {
       'Kniebeugen': 'squat', 'Liegestütze': 'pushup', 'Liegestütze: Leistungsprüfung': 'pushup', 'Ausfallschritte': 'lunge', 'Hampelmann': 'star',
       'Unterarmstütz': 'plank', 'Seitstütz rechts': 'side', 'Seitstütz links': 'side', 'Superman': 'superman', 'Bergsteiger': 'climber',
       'Klimmzüge': 'pull', 'Klimmzüge (Obergriff)': 'pull', 'Klimmzüge (Untergriff, eng)': 'pull', 'Klimmzüge: Leistungsprüfung': 'pull',
       'Sandsack: Kreuzheben': 'sbdl', 'Sandsack auf die Schulter': 'sbsh', 'Sandsack tragen': 'carry', 'Sandsack tragen: Höchstleistung': 'carry',
-      'Gepäckmarsch': 'march', 'Dauerlauf': 'run', 'Intensiver Dauerlauf': 'run', 'Intervall': 'run', 'Intervall in Stiefeln': 'run',
+      'Gepäckmarsch': 'march', 'Dauerlauf': 'run', 'Intensiver Dauerlauf': 'run', 'Intervall': 'run2', 'Intervall in Stiefeln': 'run2',
     };
     const keyFor = name => { let n = String(name); const neg = n.endsWith(': Negative'); if (neg) n = n.slice(0, -10); const k = MAP[n]; return k ? { k, neg } : null; };
     return { A, keyFor };

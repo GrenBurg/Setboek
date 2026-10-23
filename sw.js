@@ -1,6 +1,6 @@
 // Setboek service worker: app offline beschikbaar, updates bij volgende start met internet.
-const CACHE = 'setboek-v2';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './abb/abb7.png', './abb/abb22.png', './abb/abb33.png', './abb/abb38.png', './abb/abb42.png', './abb/abb46.png', './abb/abb48.png', './abb/abb50.png', './abb/abb52.png'];
+const CACHE = 'setboek-v3';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './abb/abb7.png', './abb/abb11.png', './abb/abb33.png', './abb/abb38.png', './abb/abb42.png', './abb/abb50.png', './abb/abb52.png', './abb/abb64.png', './abb/abb91.png', './abb/abb92.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
