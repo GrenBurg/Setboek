@@ -234,6 +234,18 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
 .blocks .nlw { font: italic 12px var(--f-body); color: var(--muted); }
 .check { display: flex; align-items: center; gap: 10px; font-size: 15px; }
 .check input { width: 22px; height: 22px; accent-color: var(--ink); }
+.rw { display: flex; flex-direction: column; }
+.rwrow { display: grid; grid-template-columns: 1fr 104px; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 1px dashed var(--line); }
+.rwrow:first-child { border-top: 0; }
+.rwname { font-family: var(--f-display); font-size: 18px; font-weight: 600; line-height: 1.15; min-width: 0; }
+.rwnorm { grid-column: 1; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rwnorm b { color: var(--ink); font-weight: 700; }
+.rwin { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.rwin input { font: 600 20px var(--f-display); font-variant-numeric: tabular-nums; text-align: center; padding: 4px 2px; border: 0; border-bottom: 2px solid var(--ink); background: transparent; color: var(--ink); width: 100%; min-width: 0; border-radius: 0; }
+.rwst { white-space: nowrap; font-family: var(--f-display); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: center; color: var(--muted); padding: 1px 2px; border: 1.5px solid transparent; }
+.rwst.j1 { color: var(--accent); border-color: var(--accent); }
+.rwst.j2 { color: var(--pr); border-color: var(--pr); transform: rotate(-3deg); }
+.src { font-size: 12px; color: var(--muted); margin: 0; }
 </style>
 
 <div class="wrap" id="app"></div>
@@ -692,6 +704,75 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     }
     return W;
   }
+  // ---- Richtwerte 1938 (Sportvorschrift für das Heer, Ziffer 15c) ----
+  const RW = [
+    { id: 'r100', name: '100-m-Lauf', nl: '100 meter sprint', u: 's', low: true, j1: 14.2, j2: 13.4 },
+    { id: 'r200', name: '200-m-Lauf', nl: '200 meter sprint', u: 's', low: true, j1: 32.0, j2: 30.0 },
+    { id: 'r400', name: '400-m-Lauf', nl: '400 meter sprint', u: 's', low: true, j1: 72.0, j2: 68.0 },
+    { id: 'weit', name: 'Weitsprung', nl: 'verspringen', u: 'm', j1: 4.15, j2: 4.75 },
+    { id: 'hoch', name: 'Hochsprung', nl: 'hoogspringen', u: 'm', j1: 1.15, j2: 1.35 },
+    { id: 'kugel', name: 'Kugelstoßen', nl: 'kogelstoten', u: 'm', j1: 6.5, j2: 8.0 },
+    { id: 'hgr', name: 'Handgranatenweitwurf', nl: 'handgranaat werpen (oefengranaat)', u: 'm', j1: 35, j2: 42 },
+    { id: 'sw100', name: 'Schwimmen 100 m', nl: 'zwemmen 100 meter', u: 't', low: true, j1: null, j2: 160 },
+    { id: 'sw300', name: 'Schwimmen 300 m', nl: 'zwemmen 300 meter', u: 't', low: true, j1: null, j2: 540 },
+  ];
+  const mmss = t => Math.floor(t / 60) + ':' + String(Math.round(t % 60)).padStart(2, '0');
+  function rwFmt(r, v) {
+    if (v == null) return '';
+    if (r.u === 't') return mmss(v);
+    return nf(v, 2) + (r.u === 's' ? '' : '');
+  }
+  function rwNorm(r, v) {
+    if (v == null) return 'frei';
+    return r.u === 't' ? mmss(v) : nf(v, 2) + ' ' + (r.u === 's' ? 's' : 'm');
+  }
+  function rwParse(r, str) {
+    str = String(str).trim().replace(',', '.');
+    if (!str) return null;
+    if (str.includes(':')) { const [m, sec] = str.split(':'); const v = (+m) * 60 + (+sec); return isFinite(v) && v > 0 ? v : NaN; }
+    const v = parseFloat(str); if (!isFinite(v) || v <= 0) return NaN;
+    return r.u === 't' ? v * 60 : v;   // zwemmen zonder dubbele punt = minuten
+  }
+  function rwStatus(r, v) {
+    if (v == null) return ['', '—'];
+    const ok = n => n == null ? true : (r.low ? v <= n : v >= n);
+    if (ok(r.j2)) return ['j2', '2. DJ erfüllt'];
+    if (ok(r.j1)) return ['j1', '1. DJ erfüllt'];
+    return ['', 'unter Norm'];
+  }
+  function richtCard() {
+    const R = state.richt || {};
+    const met = RW.filter(r => R[r.id] && rwStatus(r, R[r.id].v)[0]).length;
+    return `<section class="panel"><div class="ph"><h2>Richtwerte 1938</h2><span class="big">${met}/${RW.length}</span></div>
+      <p class="hint">Zo controleerde het leger elke zomer de prestaties in atletiek en zwemmen. Vul je eigen beste prestatie in en zie of je de norm van een rekruut in het 1e of 2e dienstjaar haalt.</p>
+      <div class="rw">${RW.map(r => {
+        const e = R[r.id], st = rwStatus(r, e ? e.v : null);
+        const ph = r.u === 't' ? 'm:ss' : r.u === 's' ? 'sec' : 'meter';
+        return `<div class="rwrow">
+          <div class="rwname">${esc(r.name)}<span class="nl">${esc(r.nl)}</span></div>
+          <div class="rwnorm">1. DJ <b>${rwNorm(r, r.j1)}</b> · 2. DJ <b>${rwNorm(r, r.j2)}</b>${e && e.d ? ` · ${fromKey(e.d).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}` : ''}</div>
+          <div class="rwin"><input id="rw-${r.id}" data-rw="${r.id}" type="text" inputmode="decimal" placeholder="${ph}" value="${e ? rwFmt(r, e.v) : ''}" aria-label="${esc(r.name)}: jouw prestatie"><span class="rwst ${st[0]}" id="rws-${r.id}">${st[1]}</span></div>
+        </div>`;
+      }).join('')}</div>
+      <p class="src">Bron: Sportvorschrift für das Heer, 1 oktober 1938, Ziffer 15c. DJ = Dienstjahr. "frei" = in het 1e dienstjaar volstond vrij kunnen zwemmen. Het gewicht van kogel en oefenhandgranaat staat niet in deze Ziffer.</p>
+    </section>`;
+  }
+  document.addEventListener('change', e => {
+    const id = e.target && e.target.dataset && e.target.dataset.rw; if (!id) return;
+    const r = RW.find(x => x.id === id), v = rwParse(r, e.target.value);
+    if (Number.isNaN(v)) { toast(r.u === 't' ? 'Vul een tijd in als 2:35.' : 'Vul een getal in, bijvoorbeeld ' + (r.u === 's' ? '13,8' : '4,30') + '.'); return; }
+    state.richt = state.richt || {};
+    if (v == null) delete state.richt[id]; else state.richt[id] = { v, d: today() };
+    save();
+    if (v != null) e.target.value = rwFmt(r, v);
+    const st = rwStatus(r, v), el = document.getElementById('rws-' + id);
+    if (el) { el.className = 'rwst ' + st[0]; el.textContent = st[1]; }
+    const big = e.target.closest('.panel').querySelector('.big');
+    if (big) big.textContent = RW.filter(x => state.richt[x.id] && rwStatus(x, state.richt[x.id].v)[0]).length + '/' + RW.length;
+    if (st[0] === 'j2') toast('Norm 2. Dienstjahr erfüllt');
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.rw) e.target.blur(); });
+
   function tests(id) {
     const out = [];
     for (const [dk, l] of Object.entries(state.logs)) for (const [ik, v] of Object.entries(l)) if (ik.endsWith('.' + id) && v && typeof v.v === 'number') out.push({ k: dk, v: v.v });
@@ -728,6 +809,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       <section class="panel"><div class="ph"><h2>Gepäckmarsch</h2><span class="label">kg × km</span></div>
         <p class="hint">Gepland: ${[1, 2, 3, 4, 5, 6].map(w => nf(ruckKg(w), 1) + '×' + RUCK_KM[w]).join(' · ')}</p>
         ${bars(A.map(x => Math.round(x.ruck)), v => v, 'var(--run)')}</section>
+      ${richtCard()}
       <div class="grid2">
         <section class="panel"><span class="label">Klimmzüge je Woche</span>${bars(A.map(x => x.pull), v => v)}</section>
         <section class="panel"><span class="label">Liegestütze · Max ${pushMaxAt(today())}</span>${bars(A.map(x => x.push), v => v)}</section>
@@ -739,6 +821,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       <section class="panel"><details><summary>Dienstvorschrift</summary><div class="explain" style="margin-top:12px">
         <p><b>Namen.</b> Kniebeugen = air squats, Liegestütze = push-ups, Ausfallschritte = lunges, Hampelmann = starjumps, Unterarmstütz = plank, Seitstütz = side plank, Bergsteiger = mountain climbers, Klimmzüge im Obergriff = pull-ups, im Untergriff eng = narrow grip chin-ups, Kreuzheben = deadlift, Gepäckmarsch = mars met rugzak, Stiefel = kisten.</p>
         <p><b>Materiaal.</b> Het gewicht van je zandzak en of je een optrekstang hebt, stel je in bij het tandwiel. Zonder zandzak of stang verdwijnen die onderdelen uit het schema; de rest blijft hetzelfde. Is de zak lichter dan 40 kg, doe dan bij elk zandzakonderdeel gerust 2 herhalingen of 10 m extra.</p>
+        <p><b>Richtwerte 1938.</b> De kaart in het Leistungsbuch hoort niet bij je schema en telt niet mee voor je weken. Het is een vergelijking met de normen uit de Sportvorschrift für das Heer, voor wie wil weten hoe hij zich verhoudt tot een rekruut uit 1938.</p>
         <p><b>Je schema blijft leidend.</b> Looptraining en rustdagen staan precies zoals je ze kreeg. Alleen het kisten inlopen op donderdag is vervangen door een mars met rugzak, die je op je kisten loopt. Zandzak en optrekstang zitten alleen in blokken die al kracht bevatten: week 1–3 op maandag en vrijdag, week 4–5 op woensdag (moment 2) en vrijdag. Dinsdag en zondag blijven volledige rust. Voelen je benen op vrijdag nog zwaar van de mars, schrap dan eerst een zandzakset.</p>
         <p><b>Volgorde in een blok:</b> eerst de zandzak (zwaarst, techniek vraagt frisheid), dan optrekken, dan het lichaamsgewichtcircuit uit je schema.</p>
         <p><b>Zandzak (${nf(sbKg(), 1)} kg).</b> Het gewicht ligt vast, dus de overload komt uit herhalingen, sets, afstand en moeilijkere varianten. Week 1–2 bouw je de basis met de deadlift, vanaf week 3 til je hem naar de schouder. Week 6 is lichter zodat je fris bent voor de eindtest.</p>
@@ -839,7 +922,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         state.start = mondayOf(v); save(); view.date = null; closeSheet(); render(); toast('Instellingen opgeslagen');
       }
       if (e.target.closest('[data-export]')) {
-        const json = JSON.stringify({ app: 'setboek', v: 1, start: state.start, ruckKg: state.ruckKg, pushMax: state.pushMax, sbKg: state.sbKg, bar: state.bar, logs: state.logs });
+        const json = JSON.stringify({ app: 'setboek', v: 1, start: state.start, ruckKg: state.ruckKg, pushMax: state.pushMax, sbKg: state.sbKg, bar: state.bar, richt: state.richt, logs: state.logs });
         const show = () => { $('#io-zone').innerHTML = `<p class="hint">Kopiëren lukte hier niet automatisch. Selecteer de tekst hieronder en kopieer hem zelf.</p><textarea id="io-out" readonly>${esc(json)}</textarea>`; const t = $('#io-out'); t.focus(); t.select(); };
         try { navigator.clipboard.writeText(json).then(() => { $('#io-zone').innerHTML = '<p class="hint">Gekopieerd. Plak het in de nieuwe app bij Importeren, of bewaar het in een notitie als back-up.</p>'; }, show); } catch (err) { show(); }
       }
@@ -852,7 +935,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       if (e.target.closest('[data-doimport]')) {
         let v = null; try { v = JSON.parse($('#io-in').value.trim()); } catch (err) {}
         if (!v || v.app !== 'setboek' || typeof v.logs !== 'object') { toast('Dit is geen Setboek-voortgang. Kopieer hem opnieuw vanuit de oude app.'); return; }
-        state = { start: v.start || state.start, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : 25, sbKg: typeof v.sbKg === 'number' ? v.sbKg : undefined, bar: v.bar !== false, setupDone: true, logs: v.logs };
+        state = { start: v.start || state.start, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : 25, sbKg: typeof v.sbKg === 'number' ? v.sbKg : undefined, bar: v.bar !== false, richt: v.richt && typeof v.richt === 'object' ? v.richt : {}, setupDone: true, logs: v.logs };
         save(); view.date = null; closeSheet(); render(); toast('Voortgang ingelezen');
       }
       if (e.target.closest('[data-askreset]')) {
