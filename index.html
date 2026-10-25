@@ -280,6 +280,18 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
 .kz.now { background: var(--soft); }
 .kz svg.st { position: absolute; right: -4px; bottom: -6px; width: 72px; height: 72px; opacity: .88; }
 .kz .lw { position: absolute; top: 5px; right: 6px; font-family: var(--f-display); font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); padding: 0 3px; }
+.item { position: relative; }
+.item.done > :not(.istamp) { opacity: .62; }
+.istamp {
+  position: absolute; right: 18px; top: 50%; z-index: 2; pointer-events: none;
+  transform: translateY(-50%) rotate(-9deg);
+  font-family: var(--f-display); font-weight: 700; font-size: 24px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--pr); border: 3px solid var(--pr); padding: 2px 12px 1px; background: transparent; opacity: .9;
+  box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3.5px var(--pr);
+}
+.istamp.fresh { animation: thud .32s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes thud { 0% { transform: translateY(-50%) rotate(-9deg) scale(1.9); opacity: 0; } 100% { transform: translateY(-50%) rotate(-9deg) scale(1); opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .istamp.fresh { animation: none; } }
 </style>
 
 <div class="wrap" id="app"></div>
@@ -688,6 +700,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     $('#app').innerHTML = h;
   }
 
+  let seen = new Set(), seenDate = null; // al afgeronde onderdelen, om alleen een nieuw stempel te laten 'neerkomen'
   function renderDay() {
     const k = view.date, i = info(k), st = startKey();
     const mon = mondayOf(k);
@@ -704,7 +717,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         <span class="dn">${dn}</span><span class="dd">${fromKey(dk).getDate()}</span>${ring(p.n ? p.d / p.n : 0, p.n > 0)}</button>`;
     }).join('')}</div>`;
 
-    const ss = sessionsFor(k);
+    const ss = sessionsFor(k), nowSeen = new Set();
     h += lightNotice(i);
     if (i && i.skipped) {
       h += `<section class="rest"><h2>Woche ausgefallen</h2><p class="hint">In deze week is niets afgevinkt, dus het schema is een week opgeschoven. De week erna begin je met week ${i.next}, op het niveau waar je gebleven was.</p></section>`;
@@ -721,11 +734,20 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     ss.forEach((s, si) => {
       const p = s.items.filter(it => itemDone(k, s, it)).length;
       h += `<section class="session">${p === s.items.length ? '<span class="stamp">Erledigt</span>' : ''}<div class="shead"><h2>${esc(s.title)}${nl(s.title)}</h2><span class="label">${ss.length > 1 ? 'Dienst ' + s.moment + ' · ' : ''}${p}/${s.items.length}</span></div><div class="items">`;
-      s.items.forEach((it0, ii) => { h += renderItem(k, s, it0, si, ii); });
+      s.items.forEach((it0, ii) => {
+        let x = renderItem(k, s, it0, si, ii);
+        if (x && itemDone(k, s, it0)) {
+          const key = ikey(s, it0), fresh = seenDate === k && !seen.has(key);
+          nowSeen.add(key);
+          x = x.replace(/^<div class="item/, '<div class="item done').replace('>', `><span class="istamp${fresh ? ' fresh' : ''}" aria-label="Afgerond">Erledigt</span>`);
+        }
+        h += x;
+      });
       const rv = ((state.logs[k] || {})['m' + s.moment + '.rpe'] || {}).v;
       h += `</div><div class="rpe"><div class="rpe-h"><span class="label">Belastung</span><span class="label" style="letter-spacing:.04em;text-transform:none">${rv ? rpeTxt(rv) : 'Hoe zwaar was deze dienst?'}</span></div>
         <div class="rpebtns" role="group" aria-label="Belasting van 1 tot 10">${Array.from({ length: 10 }, (_, j) => `<button type="button" class="${j >= 8 ? 'hi' : ''}" data-rpe="${j + 1}" data-si="${si}" aria-pressed="${rv === j + 1}">${j + 1}</button>`).join('')}</div></div></section>`;
     });
+    seen = nowSeen; seenDate = k;
     return h;
   }
 
