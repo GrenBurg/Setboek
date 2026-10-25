@@ -991,7 +991,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         const p = x.all ? Math.round(x.doneAll / x.all * 100) : 0;
         return `<div class="kz ${x.w === cw ? 'now' : ''}"><b>${x.w}. Woche</b><small>${x.w === cw ? 'jetzt dran' : ''}</small>
           ${isLight(x.w) || x.w === 10 ? '<span class="lw">L</span>' : ''}
-          ${isStamped(x) ? stampSvg(x.w, (state.act || {})[x.w]) : `<span class="pct">${x.doneAll ? p + '%' : ''}</span>`}</div>`;
+          ${isStamped(x) ? stampSvg(x.w, null) : `<span class="pct">${x.doneAll ? p + '%' : ''}</span>`}</div>`;
       }).join('')}</div>
       <p class="src">L = lichte week. Week 10 is altijd licht; zelf ingelaste lichte weken staan er ook.</p></section>`;
   }
