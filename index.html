@@ -97,10 +97,11 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .dbtn { border: 0; border-left: 1px solid var(--line); background: transparent; padding: 7px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
 .dbtn:first-child { border-left: 0; }
 .dbtn .dn { font-family: var(--f-display); font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .06em; }
-.dbtn .dd { font-family: var(--f-display); font-size: 22px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.dbtn .dl { font-family: var(--f-display); font-size: 12px; font-weight: 600; line-height: 1.15; text-align: center; min-height: 28px; display: flex; align-items: center; justify-content: center; padding: 0 1px; overflow-wrap: anywhere; }
+.dbtn.rust .dl { color: var(--muted); font-weight: 500; }
+.dayline { margin: -6px 0 0; text-align: center; font-family: var(--f-frak); font-size: 22px; }
 .dbtn .ring { width: 18px; height: 18px; }
 .dbtn[aria-pressed="true"] { background: var(--soft); box-shadow: inset 0 -3px 0 var(--ink); }
-.dbtn.today .dd { color: var(--pr); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 
 /* Diensten */
 .session { background: var(--surface); border: 1px solid var(--ink); outline: 1px solid var(--line); outline-offset: 3px; position: relative; margin: 4px; }
@@ -528,40 +529,60 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   const mondayOf = k => { const d = fromKey(k); const w = (d.getDay() + 6) % 7; d.setDate(d.getDate() - w); return key(d); };
   const nf = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toLocaleString('nl-NL', { maximumFractionDigits: d });
 
-  function startKey() { return state.start || mondayOf(today()); }
-  // Kalenderweken (vanaf de start) waarin iets is afgevinkt
-  let actCache = null;
-  function activeWeeks() {
-    if (actCache) return actCache;
-    const st = startKey(), set = new Set();
-    for (const [dk, l] of Object.entries(state.logs)) {
-      const d = diffDays(dk, st); if (d < 0) continue;
-      for (const v of Object.values(l)) {
-        if (v && (v.done === true || typeof v.v === 'number' || (Array.isArray(v.s) && v.s.some(x => x === true || (x && x.d))))) { set.add(Math.floor(d / 7)); break; }
-      }
-    }
-    return (actCache = set);
-  }
-  // Schemaweek voor een datum. Afgelopen weken zonder activiteit tellen niet mee:
-  // het schema telt door vanaf de laatste week waarin je trainde.
+  // ---- Het schema loopt niet op datum. Een plek in het schema is week + dag: "W03-4" = week 3, vrijdag. ----
+  const posKey = (w, d) => 'W' + String(w).padStart(2, '0') + '-' + d;
+  const isPos = k => /^W\d\d-[0-6]$/.test(k);
   function info(k) {
-    const st = startKey(), d = diffDays(k, st);
-    if (d < 0) return null;
-    const c = Math.floor(d / 7), dow = d % 7, tc = Math.floor(diffDays(today(), st) / 7), act = activeWeeks();
-    let pw = 0;
-    for (let i = 0; i <= c; i++) {
-      if (i < tc && !act.has(i)) { if (i === c) return { skipped: true, dow, cal: c, next: pw + 1 }; continue; }
-      pw++;
+    if (!isPos(k)) return null;
+    const w = +k.slice(1, 3), d = +k.slice(4);
+    return w >= 1 && w <= TOTAL ? { week: w, dow: d } : null;
+  }
+  // Week klaar: minstens 80% afgetekend
+  function weekStats(w) {
+    let all = 0, done = 0;
+    for (let d = 0; d < 7; d++) { const k = posKey(w, d); for (const s of plan(w, d)) for (const it of s.items) { all++; if (itemDone(k, s, it)) done++; } }
+    return { all, done, pct: all ? done / all : 0 };
+  }
+  const weekDone = w => { const x = weekStats(w); return x.all > 0 && x.pct >= 0.8; };
+  function weekActive(w) { for (let d = 0; d < 7; d++) if (state.logs[posKey(w, d)]) return true; return false; }
+  // Huidige week: de laatste week waarin je iets deed; is die klaar, dan de volgende
+  function currentWeek() {
+    let w = 0;
+    for (let i = 1; i <= TOTAL; i++) if (weekActive(i)) w = i;
+    if (!w) return 1;
+    return weekDone(w) && w < TOTAL ? w + 1 : w;
+  }
+  // Eerste dag in een week waar nog iets openstaat
+  function firstOpenDay(w) {
+    for (let d = 0; d < 7; d++) { const k = posKey(w, d), ss = plan(w, d); if (ss.some(s => s.items.some(it => !itemDone(k, s, it)))) return d; }
+    return 0;
+  }
+  // Oude opslag (per kalenderdatum) omzetten naar plekken in het schema, met dezelfde telling als voorheen
+  function migrateDates() {
+    const dks = Object.keys(state.logs || {}).filter(k => /^\d{4}-\d\d-\d\d$/.test(k));
+    if (!dks.length) return false;
+    const st = state.start || mondayOf(dks.slice().sort()[0]);
+    const tc = Math.floor(diffDays(today(), st) / 7), act = new Set();
+    for (const dk of dks) { const d = diffDays(dk, st); if (d >= 0) act.add(Math.floor(d / 7)); }
+    const pwOf = c => { let pw = 0; for (let i = 0; i <= c; i++) { if (i < tc && !act.has(i)) { if (i === c) return null; continue; } pw++; } return pw; };
+    const out = {}; state.act = state.act || {};
+    for (const [dk, l] of Object.entries(state.logs)) {
+      if (!/^\d{4}-\d\d-\d\d$/.test(dk)) { out[dk] = l; continue; }
+      const d = diffDays(dk, st); if (d < 0) continue;
+      const pw = pwOf(Math.floor(d / 7)); if (!pw || pw > TOTAL) continue;
+      const nk = posKey(pw, d % 7);
+      out[nk] = Object.assign(out[nk] || {}, l);
+      if (!state.act[pw] || state.act[pw] < dk) state.act[pw] = dk;
     }
-    if (pw > TOTAL) return null;
-    return { week: pw, dow, cal: c, shift: c + 1 - pw };
+    state.logs = out; delete state.start;
+    return true;
   }
   function sessionsFor(k) { const i = info(k); return i && !i.skipped ? plan(i.week, i.dow) : []; }
   const ikey = (s, it) => 'm' + s.moment + '.' + it.id;
   function log(k, s, it) { return (state.logs[k] || {})[ikey(s, it)]; }
   function setLog(k, s, it, v) {
     state.logs[k] = state.logs[k] || {};
-    if (v == null) delete state.logs[k][ikey(s, it)]; else state.logs[k][ikey(s, it)] = v;
+    if (v == null) delete state.logs[k][ikey(s, it)]; else { state.logs[k][ikey(s, it)] = v; const i = info(k); if (i) { state.act = state.act || {}; state.act[i.week] = today(); } }
     if (!Object.keys(state.logs[k]).length) delete state.logs[k];
     save();
   }
@@ -642,7 +663,6 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   function loadLocal() { try { const r = localStorage.getItem(LS); if (r) { const v = JSON.parse(r); if (v && v.logs) state = v; } } catch (e) {} }
   let wTimer = null, writing = Promise.resolve(), dirty = 0;
   function save() {
-    actCache = null;
     try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {}
     if (mode !== 'db' || readOnly) return;
     clearTimeout(wTimer); dirty++;
@@ -670,7 +690,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
           if (!snap.exists) { if (Object.keys(state.logs).length || state.start) save(); render(); return; }
         }
         const v = snap.data();
-        if (v && v.logs) { state = JSON.parse(JSON.stringify(v)); actCache = null; try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
+        if (v && v.logs) { state = JSON.parse(JSON.stringify(v)); if (migrateDates()) save(); try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
         render();
       }, () => { mode = 'local'; render(); });
     } catch (e) {}
@@ -687,7 +707,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   };
 
   function render() {
-    if (!view.date) { const t = today(); view.date = info(t) ? t : startKey(); }
+    if (!view.date || !info(view.date)) { const w = currentWeek(); view.date = posKey(w, firstOpenDay(w)); }
     const syncTxt = mode === 'db' ? 'Im Konto gesichert' : 'Nur auf diesem Gerät';
     let h = `<header class="top"><div><div class="brand">Setboek</div><div class="sub">Dienstplan · Leibesübungen</div><span class="sync ${mode === 'db' ? 'on' : ''}"><i></i>${syncTxt}</span></div>
       <button class="iconbtn" data-settings type="button" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -701,32 +721,24 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   }
 
   let seen = new Set(), seenDate = null; // al afgeronde onderdelen, om alleen een nieuw stempel te laten 'neerkomen'
+  const SHORT = { 'Dauerlauf und Kraft': ['Lauf', 'Kraft'], 'Dauerlauf': ['Lauf'], 'Intensiver Dauerlauf': ['Lauf'], 'Intervall': ['Intervall'], 'Intervall in Stiefeln': ['Intervall'], 'Gepäckmarsch': ['Marsch'], 'Kraft und Rumpf': ['Kraft'], 'Kraft': ['Kraft'], 'Cooper-Test': ['Cooper'], 'Leistungsprüfung': ['Prüfung'] };
   function renderDay() {
-    const k = view.date, i = info(k), st = startKey();
-    const mon = mondayOf(k);
-    const canPrev = diffDays(mon, st) > 0, nk = addDays(k, 7), canNext = diffDays(nk, st) >= 0 && !!info(nk);
-    const t = today();
+    const k = view.date, i = info(k), cw = currentWeek();
+    const w = i.week;
     let h = `<section class="weekhead">
-      <button class="iconbtn" data-week="-1" type="button" aria-label="Vorige week" ${canPrev ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <div class="t"><h1>${!i ? 'Außer Dienst' : i.skipped ? 'Ausgefallen' : i.week + '. Woche'}</h1><p>${esc(DAYS_LONG[(fromKey(k).getDay() + 6) % 7])} ${fromKey(k).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' })}${k === t ? ' · heute' : ''}${i && !i.skipped ? ' · von ' + TOTAL : ''}${i && i.shift ? ' · ' + i.shift + (i.shift === 1 ? ' Woche' : ' Wochen') + ' verschoben' : ''}</p></div>
-      <button class="iconbtn" data-week="1" type="button" aria-label="Volgende week" ${canNext ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button class="iconbtn" data-week="-1" type="button" aria-label="Vorige week" ${w > 1 ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="t"><h1>${w}. Woche</h1><p>von ${TOTAL}${w === cw ? ' · jetzt dran' : w < cw ? ' · erledigt' : ' · noch nicht dran'}${isLight(w) || w === 10 ? ' · leicht' : ''}</p></div>
+      <button class="iconbtn" data-week="1" type="button" aria-label="Volgende week" ${w < TOTAL ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
     </section>
     <div class="strip">${DAYS.map((dn, j) => {
-      const dk = addDays(mon, j), p = dayProgress(dk);
-      return `<button class="dbtn ${dk === t ? 'today' : ''}" data-date="${dk}" type="button" aria-pressed="${dk === k}" aria-label="${DAYS_LONG[j]} ${dk}">
-        <span class="dn">${dn}</span><span class="dd">${fromKey(dk).getDate()}</span>${ring(p.n ? p.d / p.n : 0, p.n > 0)}</button>`;
-    }).join('')}</div>`;
-
+      const dk = posKey(w, j), p = dayProgress(dk), ss = plan(w, j);
+      const lab = ss.length ? [...new Set(ss.flatMap(s => SHORT[s.title] || [s.title]))] : ['Ruhe'];
+      return `<button class="dbtn ${ss.length ? '' : 'rust'}" data-pos="${dk}" type="button" aria-pressed="${dk === k}" aria-label="${DAYS_LONG[j]}: ${lab.join(' en ')}">
+        <span class="dn">${dn}</span><span class="dl">${lab.map(esc).join('<br>')}</span>${ring(p.n ? p.d / p.n : 0, p.n > 0)}</button>`;
+    }).join('')}</div>
+    <p class="dayline">${esc(DAYS_LONG[i.dow])}</p>`;
     const ss = sessionsFor(k), nowSeen = new Set();
     h += lightNotice(i);
-    if (i && i.skipped) {
-      h += `<section class="rest"><h2>Woche ausgefallen</h2><p class="hint">In deze week is niets afgevinkt, dus het schema is een week opgeschoven. De week erna begin je met week ${i.next}, op het niveau waar je gebleven was.</p></section>`;
-      return h;
-    }
-    if (!i) {
-      h += `<section class="rest"><h2>${diffDays(k, st) < 0 ? 'Dienstbeginn ' + fromKey(st).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Dienstplan erfüllt'}</h2><p class="hint">Je kunt de startdatum aanpassen bij instellingen.</p></section>`;
-      return h;
-    }
     if (!ss.length) {
       h += `<section class="rest"><h2>Ruhetag</h2><p class="hint">Herstel hoort bij het schema. Wandelen of rustig fietsen mag, verder niets zwaars.</p></section>`;
       return h;
@@ -760,14 +772,14 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   // laatste beoordelingen, nieuwste eerst
   function lastRpe(n) {
     const out = [];
-    for (const [dk, l] of Object.entries(state.logs)) for (const [ik, v] of Object.entries(l)) if (ik.endsWith('.rpe') && v && typeof v.v === 'number') out.push({ k: dk, m: ik, v: v.v });
+    for (const [dk, l] of Object.entries(state.logs)) for (const [ik, v] of Object.entries(l)) if (ik.endsWith('.rpe') && v && typeof v.v === 'number') out.push({ k: dk, m: ik, v: v.v, t: v.t });
     return out.sort((a, b) => a.k < b.k ? 1 : a.k > b.k ? -1 : (a.m < b.m ? 1 : -1)).slice(0, n);
   }
   function lightNotice(i) {
     if (!i || i.skipped) return '';
     if (isLight(i.week)) return `<section class="notice calm"><h3>Leichte Woche</h3><p>Deze week doe je bij elk krachtonderdeel één set minder en is de mars 25% korter. Loop alles in tempo A.</p><button class="btn ghost" type="button" data-light="${i.week}">Aufheben</button></section>`;
     const r = lastRpe(3);
-    if (r.length === 3 && r.every(x => x.v >= 9) && diffDays(today(), r[0].k) <= 10)
+    if (r.length === 3 && r.every(x => x.v >= 9) && (!r[0].t || diffDays(today(), r[0].t) <= 10))
       return `<section class="notice"><h3>Achtung</h3><p>Je laatste drie diensten gaf je een 9 of hoger. Dan groeit vermoeidheid sneller dan je kracht. Leg een lichte week in: één set minder bij kracht, mars 25% korter, lopen in tempo A.</p><button class="btn" type="button" data-light="${i.week}">Leichte Woche einlegen</button></section>`;
     return '';
   }
@@ -840,27 +852,23 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
 
   // ---------- voortgang ----------
   function weekAgg() {
-    const st = startKey(), t = today();
-    const W = Array.from({ length: TOTAL }, (_, i) => ({ w: i + 1, pull: 0, carry: 0, lifts: 0, push: 0, ruck: 0, runKm: 0, done: 0, total: 0, first: null, last: null, act: null }));
-    for (let d = 0; d < 400; d++) {
-      const k = addDays(st, d), inf = info(k);
-      if (!inf) break;
-      if (inf.skipped) continue;
-      const wi = inf.week - 1, A = W[wi];
-      if (!A.first) A.first = k; A.last = k;
-      for (const s of plan(inf.week, inf.dow)) for (const it0 of s.items) {
-        A.all = (A.all || 0) + 1; if (itemDone(k, s, it0)) A.doneAll = (A.doneAll || 0) + 1;
-        if (k <= t) { A.total++; if (itemDone(k, s, it0)) A.done++; }
+    const W = Array.from({ length: TOTAL }, (_, i) => ({ w: i + 1, pull: 0, carry: 0, lifts: 0, push: 0, ruck: 0, runKm: 0, done: 0, total: 0, all: 0, doneAll: 0 }));
+    for (let w = 1; w <= TOTAL; w++) for (let d = 0; d < 7; d++) {
+      const k = posKey(w, d), A = W[w - 1], wi = w - 1;
+      for (const s of plan(w, d)) for (const it0 of s.items) {
+        const dn = itemDone(k, s, it0);
+        A.all++; A.total++; if (dn) { A.doneAll++; A.done++; }
         const l = log(k, s, it0); if (!l) continue;
         if (it0.k === 'pull' && l.s) A.pull += l.s.filter(x => x && x.d).reduce((a, x) => a + (x.v || 0), 0);
         if (it0.id === 'sbc' && l.s) A.carry += l.s.filter(x => x && x.d).reduce((a, x) => a + (x.v || 0), 0);
         if (it0.id === 'sbl' && l.s) A.lifts += l.s.filter(x => x && x.d).reduce((a, x) => a + (x.v || 0), 0);
         if (it0.k === 'ruck' && l.done) A.ruck += (typeof l.kg === 'number' ? l.kg : ruckKg(wi + 1)) * (typeof l.km === 'number' ? l.km : ruckKm(wi + 1));
         if (it0.k === 'run' && typeof l.km === 'number') A.runKm += l.km;
-        if (itemDone(k, s, it0)) A.act = k;
         if (it0.id === 'pu' && l.s) A.push += l.s.filter(Boolean).length * resolve(k, it0).reps;
       }
     }
+    // alleen weken tot en met de huidige tellen mee voor 'Dienstplan erfüllt'
+    const cw = currentWeek(); W.forEach(x => { if (x.w > cw) { x.total = 0; x.done = 0; } });
     return W;
   }
   // ---- Richtwerte 1938 (Sportvorschrift für das Heer, Ziffer 15c) ----
@@ -909,7 +917,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
         const ph = r.u === 't' ? 'm:ss' : r.u === 's' ? 'sec' : 'meter';
         return `<div class="rwrow">
           <div class="rwname">${esc(r.name)}<span class="nl">${esc(r.nl)}</span></div>
-          <div class="rwnorm">1. DJ <b>${rwNorm(r, r.j1)}</b> · 2. DJ <b>${rwNorm(r, r.j2)}</b>${e && e.d ? ` · ${fromKey(e.d).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}` : ''}</div>
+          <div class="rwnorm">1. DJ <b>${rwNorm(r, r.j1)}</b> · 2. DJ <b>${rwNorm(r, r.j2)}</b></div>
           <div class="rwin"><input id="rw-${r.id}" data-rw="${r.id}" type="text" inputmode="decimal" placeholder="${ph}" value="${e ? rwFmt(r, e.v) : ''}" aria-label="${esc(r.name)}: jouw prestatie"><span class="rwst ${st[0]}" id="rws-${r.id}">${st[1]}</span></div>
         </div>`;
       }).join('')}</div>
@@ -954,7 +962,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     const Wd = 300, H = 120, L = 6, R = 6, T = 18, B = 20;
     const mx = Math.max(1, ...vals);
     const bw = (Wd - L - R) / vals.length;
-    const curW = info(today()) ? info(today()).week : 0;
+    const curW = currentWeek();
     return `<svg class="chart" viewBox="0 0 ${Wd} ${H}" role="img">
       <line x1="${L}" x2="${Wd - R}" y1="${H - B}" y2="${H - B}" stroke="var(--line)"/>
       ${vals.map((v, i) => {
@@ -967,26 +975,23 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   }
 
   function stampSvg(n, dateKey) {
-    const rot = ((n * 37) % 17) - 8, d = fromKey(dateKey), ds = String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getFullYear()).slice(2);
+    const rot = ((n * 37) % 17) - 8, d = dateKey ? fromKey(dateKey) : null, ds = d ? String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getFullYear()).slice(2) : n + '. Woche';
     return `<svg class="st" viewBox="0 0 80 80" aria-hidden="true"><g transform="rotate(${rot} 40 40)" fill="none" stroke="var(--pr)">
       <circle cx="40" cy="40" r="35" stroke-width="2.6"/><circle cx="40" cy="40" r="30" stroke-width="1"/>
       <text x="40" y="37" text-anchor="middle" fill="var(--pr)" stroke="none" style="font:700 12px var(--f-display);letter-spacing:.08em">ERLEDIGT</text>
       <text x="40" y="51" text-anchor="middle" fill="var(--pr)" stroke="none" style="font:600 10px var(--f-display)">${ds}</text></g></svg>`;
   }
   function dienstkarte(A) {
-    const t = today(), cw = info(t);
-    const fmt = k => { const d = fromKey(k); return d.getDate() + '.' + (d.getMonth() + 1) + '.'; };
-    const isStamped = x => !!x.all && ((x.last && x.last < t && x.doneAll / x.all >= 0.8) || x.doneAll >= x.all);
+    const cw = currentWeek();
+    const isStamped = x => x.all > 0 && x.doneAll / x.all >= 0.8;
     const stamped = A.filter(isStamped).length;
     return `<section class="panel"><div class="ph"><h2>Dienstkarte</h2><span class="big">${stamped}/${TOTAL}</span></div>
-      <p class="hint">Een week krijgt een stempel als hij voorbij is en je minstens 80% hebt afgetekend, of zodra alles af is.</p>
+      <p class="hint">Een week krijgt een stempel zodra je minstens 80% hebt afgetekend. Daarna gaat de app door naar de volgende week.</p>
       <div class="kartegrid">${A.map(x => {
-        const now = cw && !cw.skipped && cw.week === x.w;
-        const p = x.all ? Math.round((x.doneAll || 0) / x.all * 100) : 0;
-        const done = isStamped(x);
-        return `<div class="kz ${now ? 'now' : ''}"><b>${x.w}. Woche</b><small>${x.first ? fmt(x.first) + '–' + fmt(x.last) : ''}</small>
+        const p = x.all ? Math.round(x.doneAll / x.all * 100) : 0;
+        return `<div class="kz ${x.w === cw ? 'now' : ''}"><b>${x.w}. Woche</b><small>${x.w === cw ? 'jetzt dran' : ''}</small>
           ${isLight(x.w) || x.w === 10 ? '<span class="lw">L</span>' : ''}
-          ${done ? stampSvg(x.w, x.act || x.last) : `<span class="pct">${x.doneAll ? p + '%' : ''}</span>`}</div>`;
+          ${isStamped(x) ? stampSvg(x.w, (state.act || {})[x.w]) : `<span class="pct">${x.doneAll ? p + '%' : ''}</span>`}</div>`;
       }).join('')}</div>
       <p class="src">L = lichte week. Week 10 is altijd licht; zelf ingelaste lichte weken staan er ook.</p></section>`;
   }
@@ -1025,7 +1030,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       ${bars(A.map(x => x.total ? Math.round(x.done / x.total * 100) : 0), v => v + '%', 'var(--run)')}</section>
 
       <section class="panel"><div class="ph"><h2>Klimmzüge</h2><span class="big">${last ? last.v + '×' : '—'}</span></div>
-      <p class="hint">${pt.length ? pt.map(x => `${fromKey(x.k).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}: ${x.v}`).join(' → ') + (pt.length > 1 ? ` (${last.v - first.v >= 0 ? '+' : ''}${last.v - first.v})` : '') : 'Testmomenten: week 1 maandag, week 4 woensdag, week 6 woensdag en week 12 maandag.'}</p></section>
+      <p class="hint">${pt.length ? pt.map(x => `Woche ${info(x.k) ? info(x.k).week : '?'}: ${x.v}`).join(' → ') + (pt.length > 1 ? ` (${last.v - first.v >= 0 ? '+' : ''}${last.v - first.v})` : '') : 'Testmomenten: week 1 maandag, week 4 woensdag, week 6 woensdag en week 12 maandag.'}</p></section>
 
       <section class="panel"><div class="ph"><h2>Gepäckmarsch</h2><span class="label">kg × km</span></div>
         <p class="hint">Gepland (kg × km): ${Array.from({ length: TOTAL }, (_, i) => i + 1).map(w => nf(ruckKg(w), 1) + '×' + ruckKm(w)).join(' · ')}</p>
@@ -1053,7 +1058,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
           ${Array.from({ length: TOTAL }, (_, i) => i + 1).map(w => `<tr><td>${w}</td><td>${SB[w].lift[0].replace(/^Sandsack:? */, '').replace('auf die Schulter', 'Schulter')} ${SB[w].lift[1]}×${SB[w].lift[2]}${SB[w].sq ? ` · Kniebeugen ${SB[w].sq[0]}×${SB[w].sq[1]}` : ''}</td><td>${SB[w].carry ? SB[w].carry[0] + '×' + SB[w].carry[1] + ' m' : 'max test'}</td></tr>`).join('')}
         </tbody></table>
         <p><b>Push-ups.</b> Met een max van 25 is het schema (3×6 tot 3×14) te licht om sterker te worden. Daarom rekent de app per set 50% van je max in week 1, oplopend naar 70% in week 5. Kun je er minder, dan schaalt het net zo goed omlaag (minimaal 3 per set). In week 4 test je opnieuw. Week 6 blijft 2×20 zoals in je schema, uitgevoerd volgens de DCP.</p>
-        <p><b>Week gemist?</b> Het schema loopt niet blind door op de kalender. Een week waarin je niets hebt afgevinkt, telt niet mee, en de week daarna ga je verder waar je gebleven was. Eén afgevinkt onderdeel is genoeg om een week te laten meetellen.</p>
+        <p><b>Geen datums.</b> Het schema is een reeks van 12 weken met vaste dagplekken. Bij elke dag zie je wat er die dag op het programma staat; wanneer je het doet, bepaal je zelf. Heb je een week voor minstens 80% afgetekend, dan krijgt hij een stempel en opent de app de volgende week. Mis je een week, dan ga je gewoon verder waar je was.</p>
         <p><b>Mars met rugzak.</b> De belasting is gewicht × afstand. Elke week gaat er één van de twee omhoog: de afstand van 5 naar 10 km, het gewicht om de twee weken met 2,5 kg vanaf je startgewicht (instelbaar). Zo groeit de totale belasting geleidelijk, en krijgen voeten, schenen en rug tijd om mee te groeien. Juist daar ontstaan bij marsen de meeste overbelastingsklachten.</p>
         <p><b>Pull-ups en chin-ups.</b> Je wisselt af: op de eerste krachtdag van de week pull-ups (bovenhands), op vrijdag narrow grip chin-ups (onderhands, smal). Beide trainen dezelfde trekbeweging, maar chin-ups leunen meer op je biceps en pull-ups meer op je brede rugspieren. Zo train je allebei en krijgen ellebogen en pezen niet twee keer per week exact dezelfde belasting. Chin-ups gaan meestal iets makkelijker; haal je alle sets, doe dan +1 bij de laatste.</p>
         <p><b>Optrekken.</b> De sets worden uitgerekend vanuit je laatste max-test: 50% in week 1 oplopend naar 70% in week 5, met een hertest in week 4. Haal je minder dan 3 nette herhalingen, dan doe je eerst negatieven (langzaam zakken), want daarmee bouw je de kracht op voor de eerste echte herhaling.</p>
@@ -1070,16 +1075,16 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   document.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b || b.closest('#overlay')) return;
     if (b.dataset.tab) { view.tab = b.dataset.tab; render(); return; }
-    if (b.dataset.date) { view.date = b.dataset.date; render(); return; }
+    if (b.dataset.pos) { view.date = b.dataset.pos; render(); return; }
     if (b.dataset.week) {
-      const dir = +b.dataset.week, nk = addDays(view.date, 7 * dir);
-      if (diffDays(nk, startKey()) >= 0 && (info(nk) || dir < 0)) { view.date = nk; render(); } return;
+      const i = info(view.date), nw = Math.min(TOTAL, Math.max(1, i.week + +b.dataset.week));
+      view.date = posKey(nw, nw === currentWeek() ? firstOpenDay(nw) : 0); render(); return;
     }
     if (b.hasAttribute('data-settings')) return openSettings();
     if (b.dataset.rpe) {
       const k = view.date, s = sessionsFor(k)[+b.dataset.si], key = 'm' + s.moment + '.rpe', v = +b.dataset.rpe;
       state.logs[k] = state.logs[k] || {};
-      if (state.logs[k][key] && state.logs[k][key].v === v) delete state.logs[k][key]; else state.logs[k][key] = { v };
+      if (state.logs[k][key] && state.logs[k][key].v === v) delete state.logs[k][key]; else state.logs[k][key] = { v, t: today() };
       if (!Object.keys(state.logs[k]).length) delete state.logs[k];
       save(); render(); return;
     }
@@ -1123,7 +1128,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   });
 
   const inFrame = (() => { try { return window.top !== window.self; } catch (e) { return true; } })();
-  function backupJson() { return JSON.stringify({ app: 'setboek', v: 1, start: state.start, ruckKg: state.ruckKg, pushMax: state.pushMax, sbKg: state.sbKg, bar: state.bar, richt: state.richt, light: state.light, logs: state.logs }); }
+  function backupJson() { return JSON.stringify({ app: 'setboek', v: 2, act: state.act, ruckKg: state.ruckKg, pushMax: state.pushMax, sbKg: state.sbKg, bar: state.bar, richt: state.richt, light: state.light, logs: state.logs }); }
   async function backupFile() {
     const name = 'setboek-backup-' + today() + '.json';
     const blob = new Blob([backupJson()], { type: 'application/json' });
@@ -1139,12 +1144,9 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     } catch (err) { if (err && err.name === 'AbortError') return; toast('Back-up maken lukte niet. Gebruik Kopiëren als alternatief.'); }
   }
   function openSettings(first) {
-    const st = startKey();
     $('#overlay').innerHTML = `<div class="scrim" ${first ? '' : 'data-close'}><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="set-h">
       <h2 id="set-h">${first ? 'Meldung zum Dienst' : 'Einstellungen'}</h2>
       ${first ? '<p class="hint">Welkom bij Setboek. Vul in wat je hebt en wat je kunt, dan rekent de app je schema daarop uit. Je kunt dit later altijd aanpassen bij het tandwiel.</p>' : ''}
-      <div class="field"><label class="label" for="set-start">Start van week 1 (maandag)</label><input id="set-start" type="date" value="${st}"></div>
-      <p class="hint">Kies je een andere dag, dan schuift de app hem naar de maandag van die week.</p>
       <div class="field"><label class="label" for="set-kg">Startgewicht rugzak (kg)</label><input id="set-kg" type="text" inputmode="decimal" value="${nf(state.ruckKg || 10, 1)}"></div>
       <p class="hint">Week 1–2 met dit gewicht, daarna om de twee weken 2,5 kg erbij.</p>
       <div class="field"><label class="label" for="set-push">Push-ups: je max bij de start</label><input id="set-push" type="text" inputmode="numeric" value="${state.pushMax || 25}"></div>
@@ -1165,12 +1167,11 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
     sc.addEventListener('click', e => {
       if (e.target.hasAttribute('data-close') || e.target.closest('[data-cancel]')) return closeSheet();
       if (e.target.closest('[data-savestart]')) {
-        const v = $('#set-start').value; if (!v) return;
         const kg = parseFloat(String($('#set-kg').value).replace(',', '.')); if (isFinite(kg) && kg > 0) state.ruckKg = Math.round(kg * 2) / 2;
         const pm = parseInt($('#set-push').value, 10); if (isFinite(pm) && pm > 0) state.pushMax = pm;
         const sb = parseFloat(String($('#set-sb').value).replace(',', '.')); if (isFinite(sb) && sb >= 0) state.sbKg = Math.round(sb * 2) / 2;
         state.bar = $('#set-bar').checked; state.setupDone = true;
-        state.start = mondayOf(v); save(); view.date = null; closeSheet(); render(); toast('Instellingen opgeslagen');
+        save(); view.date = null; closeSheet(); render(); toast('Instellingen opgeslagen');
       }
       if (e.target.closest('[data-backup]')) return backupFile();
       if (e.target.closest('[data-export]')) {
@@ -1187,7 +1188,8 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
       if (e.target.closest('[data-doimport]')) {
         let v = null; try { v = JSON.parse($('#io-in').value.trim()); } catch (err) {}
         if (!v || v.app !== 'setboek' || typeof v.logs !== 'object') { toast('Dit is geen Setboek-voortgang. Kopieer hem opnieuw vanuit de oude app.'); return; }
-        state = { start: v.start || state.start, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : 25, sbKg: typeof v.sbKg === 'number' ? v.sbKg : undefined, bar: v.bar !== false, richt: v.richt && typeof v.richt === 'object' ? v.richt : {}, light: v.light && typeof v.light === 'object' ? v.light : {}, setupDone: true, logs: v.logs };
+        state = { start: v.start, ruckKg: typeof v.ruckKg === 'number' ? v.ruckKg : undefined, pushMax: typeof v.pushMax === 'number' ? v.pushMax : 25, sbKg: typeof v.sbKg === 'number' ? v.sbKg : undefined, bar: v.bar !== false, richt: v.richt && typeof v.richt === 'object' ? v.richt : {}, light: v.light && typeof v.light === 'object' ? v.light : {}, act: v.act && typeof v.act === 'object' ? v.act : {}, setupDone: true, logs: v.logs };
+        migrateDates();
         save(); view.date = null; closeSheet(); render(); toast('Voortgang ingelezen');
       }
       if (e.target.closest('[data-askreset]')) {
@@ -1345,9 +1347,9 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   })();
 
   loadLocal();
+  if (migrateDates()) save();
   const firstRun = !state.setupDone && !Object.keys(state.logs || {}).length;
   if (!firstRun && !state.setupDone) { state.setupDone = true; }
-  if (!state.start) state.start = mondayOf(today());
   if (!state.pushMax) state.pushMax = 25;
   render();
   if (firstRun) openSettings(true);
