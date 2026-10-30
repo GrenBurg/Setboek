@@ -8,8 +8,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  // Andere apps in submappen (zoals ./ietje/) hebben hun eigen service worker
-  if (url.origin === location.origin && url.pathname.startsWith(new URL('./ietje/', self.registration.scope).pathname)) return;
+  // Andere apps in submappen (./ietje/, ./carpoolkaart/) laat deze service worker met rust
+  if (url.origin === location.origin && ['./ietje/', './carpoolkaart/'].some(p => url.pathname.startsWith(new URL(p, self.registration.scope).pathname))) return;
   // App zelf: eerst netwerk (nieuwste versie), anders uit cache
   if (req.mode === 'navigate' || (url.origin === location.origin && url.pathname.endsWith('.html'))) {
     e.respondWith(fetch(req).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put('./index.html', c)); return r; })
