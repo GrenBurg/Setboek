@@ -516,7 +516,10 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
   const LS = 'setboek.v2';
   const DOC = 'setboek';
   let state = { start: null, logs: {} };
+  // Waar je was (dag en tabblad) bewaren op dit toestel, zodat de app daar weer opent
+  const VK = 'setboek.view';
   let view = { tab: 'dag', date: null };
+  try { const v = JSON.parse(localStorage.getItem(VK) || 'null'); if (v) { if (typeof v.date === 'string') view.date = v.date; if (v.tab === 'dag' || v.tab === 'voortgang') view.tab = v.tab; } } catch (e) {}
   let mode = 'local', dbRef = null, readOnly = false;
 
   const $ = s => document.querySelector(s);
@@ -708,6 +711,7 @@ table.sb th { font-family: var(--f-display); font-size: 13px; color: var(--ink);
 
   function render() {
     if (!view.date || !info(view.date)) { const w = currentWeek(); view.date = posKey(w, firstOpenDay(w)); }
+    try { localStorage.setItem(VK, JSON.stringify({ date: view.date, tab: view.tab })); } catch (e) {}
     const syncTxt = mode === 'db' ? 'Im Konto gesichert' : 'Nur auf diesem Gerät';
     let h = `<header class="top"><div><div class="brand">Setboek</div><div class="sub">Dienstplan · Leibesübungen</div><span class="sync ${mode === 'db' ? 'on' : ''}"><i></i>${syncTxt}</span></div>
       <button class="iconbtn" data-settings type="button" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
