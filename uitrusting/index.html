@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uitrusting Schütze — nieuwe leden</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ebe5d4; --paper2:#e2dac5; --ink:#2a2823; --muted:#6c675a;
+    --rule:#c8bea4; --accent:#9b2c1f; --accent-soft:rgba(155,44,31,.12);
+    --card:#f4f0e4; --ok:#3f6b3a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink)}
+  body{font-family:"Source Serif 4",Georgia,serif;font-size:16px;line-height:1.5;
+    background-image:radial-gradient(rgba(0,0,0,.035) 1px,transparent 1px);background-size:4px 4px}
+  header{padding:22px 28px 14px;border-bottom:2px solid var(--ink);display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between}
+  header h1{font-family:"UnifrakturMaguntia",serif;font-weight:400;font-size:40px;line-height:1;margin:0;letter-spacing:.5px}
+  header .sub{font-family:"IBM Plex Mono",monospace;font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+  .progress{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);text-align:right}
+  .bar{width:180px;height:6px;background:var(--paper2);border:1px solid var(--rule);margin-top:5px}
+  .bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+
+  main{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,440px);gap:0;min-height:calc(100vh - 90px)}
+  .left{padding:18px 24px 28px;border-right:1px solid var(--rule)}
+  .right{padding:22px 26px 32px;background:var(--card);position:relative}
+  .right .sticky{position:sticky;top:18px}
+
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .viewlabel{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  button{font:inherit;cursor:pointer}
+  .btn{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--ink);color:var(--paper);border:0;padding:8px 12px;border-radius:2px}
+  .btn:hover{background:#000}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+  .btn.ghost:hover{background:var(--accent-soft)}
+
+  .stage{perspective:1400px;width:100%;max-width:420px;margin:0 auto;aspect-ratio:300/620;max-height:72vh;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
+  .stage.dragging{cursor:grabbing}
+  .card{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,.7,.2,1)}
+  .card.nodelay{transition:none}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  .face.back{transform:rotateY(180deg)}
+  .face svg{width:100%;height:100%;display:block;overflow:visible}
+  .hint{text-align:center;font-size:13px;color:var(--muted);margin:4px 0 14px;font-style:italic}
+
+  .hit{cursor:pointer}
+  .hit *{transition:filter .15s}
+  .hit:hover *{filter:brightness(1.25)}
+  .hit.sel *{stroke:var(--accent);stroke-width:2.2px;filter:brightness(1.2) drop-shadow(0 0 3px rgba(155,44,31,.55))}
+  .nohit{pointer-events:none}
+
+  .tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--paper);font-family:"IBM Plex Mono",monospace;
+    font-size:12px;padding:4px 8px;border-radius:2px;opacity:0;transform:translate(12px,-26px);transition:opacity .12s;z-index:10;white-space:nowrap}
+  .tip.on{opacity:1}
+
+  .chips h3,.panel h4{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;border-bottom:1px solid var(--rule);padding-bottom:4px}
+  .chiprow{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--rule);background:var(--card);padding:5px 9px;border-radius:2px;font-size:14px;line-height:1.2;display:flex;align-items:center;gap:6px}
+  .chip:hover{border-color:var(--ink)}
+  .chip.sel{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .chip .dot{width:8px;height:8px;border-radius:50%;border:1px solid currentColor;flex:none}
+  .chip.have .dot{background:var(--ok);border-color:var(--ok)}
+
+  .panel .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .panel h2{font-size:30px;line-height:1.1;margin:6px 0 2px;font-weight:700}
+  .panel .nl{font-style:italic;color:var(--muted);margin:0 0 12px}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:2px 7px;border:1px solid var(--ink);border-radius:2px}
+  .tag.basis{background:var(--ink);color:var(--paper)}
+  .panel p{margin:0 0 10px}
+  .panel ul{margin:0;padding-left:18px}
+  .panel li{margin:3px 0}
+  .contents{list-style:none;padding:0!important;border-top:1px solid var(--rule)}
+  .contents li{display:grid;grid-template-columns:18px 1fr;gap:6px;padding:7px 0;border-bottom:1px dotted var(--rule);margin:0}
+  .contents li b{font-weight:600}
+  .contents li span.n{color:var(--muted);font-size:14px;display:block}
+  .contents .num{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--accent);padding-top:3px}
+  .buy{border:1px solid var(--ink);padding:12px 14px;margin-top:6px;background:var(--paper)}
+  .buy.empty{border-style:dashed;border-color:var(--muted);color:var(--muted);background:transparent}
+  .buy a{color:var(--accent);font-weight:600}
+  .buy .shop{font-weight:700;font-size:17px}
+  .shops{margin:0;padding-left:20px!important}
+  .shops li{margin:2px 0}
+  .shops li::marker{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent)}
+  .shops .noot{display:block;font-size:13px;color:var(--muted)}
+  .buy .shop{font-weight:700;font-size:16px}
+  .buy .opm{margin:10px 0 0;padding-top:8px;border-top:1px dotted var(--rule)}
+  .buy .datum{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);margin-top:8px}
+  .overleg{font-size:13px;color:var(--accent);margin:8px 0 0;font-weight:600}
+  .have{display:flex;align-items:center;gap:8px;margin:16px 0 0;font-size:15px;cursor:pointer}
+  .have input{width:18px;height:18px;accent-color:var(--ok)}
+  .nav{display:flex;justify-content:space-between;gap:8px;margin-top:18px}
+  .empty-state{color:var(--muted)}
+  .empty-state h2{color:var(--ink)}
+  .legal{font-size:13px;color:var(--muted);border-left:3px solid var(--accent);padding:4px 10px;margin:10px 0}
+  .back-up{display:none}
+
+  @media (max-width:820px){
+    header{padding:16px 16px 10px}
+    header h1{font-size:30px}
+    main{grid-template-columns:1fr}
+    .left{border-right:0;padding:12px 14px 6px}
+    .right{padding:18px 16px 28px;border-top:2px solid var(--ink)}
+    .right .sticky{position:static}
+    .stage{max-height:62vh}
+    .back-up{display:inline-block}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="sub" id="eenheid">Heer · laatoorlogse uitbeelding · 1943–1945</div>
+    <h1>Die Ausrüstung des Grenadiers</h1>
+  </div>
+  <div class="progress">
+    <span id="progText">0 van 0 stukken in bezit</span>
+    <div class="bar"><i id="progBar"></i></div>
+  </div>
+</header>
+
+<main>
+  <section class="left">
+    <div class="toolbar">
+      <span class="viewlabel" id="viewLabel">Vooraanzicht</span>
+      <button class="btn" id="flipBtn" type="button">↻ Draai om</button>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="card" id="card">
+        <!-- ===================== VOORKANT ===================== -->
+        <div class="face front">
+          <svg viewBox="0 0 300 620" aria-label="Vooraanzicht soldaat">
+            <defs>
+              <pattern id="splinter" width="40" height="30" patternUnits="userSpaceOnUse">
+                <rect width="40" height="30" fill="#8b8566"/>
+                <path d="M0,4 L14,0 L22,8 L10,14Z" fill="#55603d"/>
+                <path d="M24,12 L40,6 L38,20 L28,22Z" fill="#6c5a3c"/>
+                <path d="M4,20 L18,16 L22,28 L2,30Z" fill="#55603d"/>
+                <g stroke="#3d4a2d" stroke-width=".8"><path d="M3,0v6M9,10v6M17,2v6M27,0v5M33,12v6M13,20v6M37,22v6M23,14v5"/></g>
+              </pattern>
+            </defs>
+            <ellipse cx="150" cy="588" rx="90" ry="8" fill="rgba(0,0,0,.13)" class="nohit"/>
+
+            <g class="hit" data-id="keilhose">
+              <path d="M104,300 L149,300 L146,480 L114,480 Z" fill="#5b6050" stroke="#3d4137"/>
+              <path d="M151,300 L196,300 L186,480 L154,480 Z" fill="#5b6050" stroke="#3d4137"/>
+            </g>
+            <g class="hit" data-id="schnuerschuhe">
+              <path d="M114,548 H146 V573 Q146,583 136,583 H104 Q95,583 98,575 Q102,566 114,563Z" fill="#6e5136" stroke="#3a2a1c"/>
+              <path d="M154,548 H186 V563 Q198,566 202,575 Q205,583 196,583 H164 Q154,583 154,573Z" fill="#6e5136" stroke="#3a2a1c"/>
+              <path d="M98,580 H146 M154,580 H203" stroke="#2a2018" stroke-width="2"/>
+            </g>
+            <g class="hit" data-id="gamaschen">
+              <path d="M113,476 H147 V553 H113Z M153,476 H187 V553 H153Z" fill="#7b7357" stroke="#4e4a36"/>
+              <path d="M113,496 H147 M113,526 H147 M153,496 H187 M153,526 H187" stroke="#3a2a1c" stroke-width="3.2"/>
+              <path d="M140,493 h5 v6 h-5z M140,523 h5 v6 h-5z M180,493 h5 v6 h-5z M180,523 h5 v6 h-5z" fill="#8a8a80"/>
+            </g>
+
+            <g class="hit" data-id="feldbluse">
+              <path d="M106,128 C120,121 138,121 150,125 C162,121 180,121 194,128 L199,172 L198,308 C178,314 122,314 102,308 L101,172 Z" fill="#5d6551" stroke="#3c4236"/>
+              <path d="M150,136 V310" stroke="#3c4236" stroke-width=".8"/>
+              <path d="M114,150 h28 v30 h-28z M158,150 h28 v30 h-28z" fill="#5a624e" stroke="#3c4236" stroke-width=".8"/>
+              <path d="M113,148 h30 v9 h-30z M157,148 h30 v9 h-30z" fill="#626a56" stroke="#3c4236" stroke-width=".8"/>
+              <path d="M110,127 l18,-4 l2,6 l-18,4z M190,127 l-18,-4 l-2,6 l18,4z" fill="#56604b" stroke="#e8e4d8" stroke-width=".8"/>
+              <g fill="#7f8378" stroke="#4d5047" stroke-width=".6">
+                <circle cx="150" cy="146" r="2.6"/><circle cx="150" cy="170" r="2.6"/><circle cx="150" cy="194" r="2.6"/><circle cx="150" cy="218" r="2.6"/><circle cx="150" cy="242" r="2.6"/><circle cx="150" cy="292" r="2.6"/>
+              </g>
+            </g>
+            <g class="hit" data-id="hoheitsabzeichen">
+              <path d="M116,140 q6,-6 12,0 q6,-6 12,0 l-12,3.5z" fill="#a8aa9c" stroke="#6f7268" stroke-width=".5"/>
+            </g>
+
+            <g class="hit" data-id="yriemen">
+              <path d="M126,124 L132,124 L127,258 L121,258 Z M168,124 L174,124 L179,258 L173,258 Z" fill="#1f1c19" stroke="#000" stroke-width=".5"/>
+              <circle cx="129" cy="176" r="3.2" fill="none" stroke="#8a8a80" stroke-width="1.3"/>
+              <circle cx="171" cy="176" r="3.2" fill="none" stroke="#8a8a80" stroke-width="1.3"/>
+            </g>
+
+            <g class="hit" data-id="brotbeutel">
+              <path d="M85,266 H110 V332 Q97.5,340 85,332 Z" fill="#6f6b50" stroke="#4a4734"/>
+              <path d="M85,266 H110 V293 Q97.5,299 85,293 Z" fill="#7b765a" stroke="#4a4734"/>
+              <rect x="90" y="259" width="5" height="10" fill="#1f1c19"/><rect x="101" y="259" width="5" height="10" fill="#1f1c19"/>
+            </g>
+
+            <g class="hit" data-id="koppel">
+              <rect x="101" y="256" width="98" height="12" fill="#1f1c19" stroke="#000" stroke-width=".5"/>
+            </g>
+            <g class="hit" data-id="patronen">
+              <rect x="106" y="266" width="35" height="31" rx="3" fill="#24201c" stroke="#000" stroke-width=".6"/>
+              <path d="M117.7,267v29M129.3,267v29M107,276h33" stroke="#3d3630" stroke-width="1"/>
+              <rect x="159" y="266" width="35" height="31" rx="3" fill="#24201c" stroke="#000" stroke-width=".6"/>
+              <path d="M170.7,267v29M182.3,267v29M160,276h33" stroke="#3d3630" stroke-width="1"/>
+            </g>
+            <g class="hit" data-id="koppelschloss">
+              <rect x="142" y="253.5" width="16" height="17" rx="2" fill="#7d8378" stroke="#4b4f47"/>
+              <circle cx="150" cy="262" r="5" fill="none" stroke="#5c6158" stroke-width="1"/>
+            </g>
+
+            <g class="hit" data-id="feldbluse">
+              <path d="M106,128 C95,131 89,140 87,156 L64,312 L84,318 L104,184 Z" fill="#5d6551" stroke="#3c4236"/>
+              <path d="M64,312 L84,318 L83,325 L63,319Z" fill="#535b48" stroke="#3c4236" stroke-width=".7"/>
+              <path d="M194,128 C205,131 211,140 213,156 L224,312 L204,316 L196,184 Z" fill="#5d6551" stroke="#3c4236"/>
+              <path d="M224,312 L204,316 L204,323 L225,319Z" fill="#535b48" stroke="#3c4236" stroke-width=".7"/>
+            </g>
+
+            <g class="nohit">
+              <rect x="141" y="110" width="18" height="18" fill="#d2ab86"/>
+              <ellipse cx="131.5" cy="98" rx="3" ry="6" fill="#cfa682"/>
+              <ellipse cx="168.5" cy="98" rx="3" ry="6" fill="#cfa682"/>
+              <ellipse cx="150" cy="94" rx="19" ry="24" fill="#d8b28d"/>
+              <path d="M141,107 h6 M153,107 h6" stroke="#3a2a20" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M150,108 l-2,5 h4" fill="none" stroke="#a8805f" stroke-width="1"/>
+              <path d="M146,115.5 h8" stroke="#8f5f4a" stroke-width="1.2" stroke-linecap="round"/>
+            </g>
+            <g class="hit" data-id="feldbluse">
+              <path d="M136,122 L150,136 L164,122 L170,131 L150,144 L130,131 Z" fill="#555e4a" stroke="#3c4236" stroke-width=".7"/>
+            </g>
+            <g class="hit" data-id="litzen">
+              <path d="M133,128 l9,6.5 M167,128 l-9,6.5" stroke="#a9aa9e" stroke-width="2.2"/>
+            </g>
+
+            <g class="hit" data-id="feldmuetze">
+              <path d="M127,86 C126,68 136,60 150,60 C164,60 174,68 173,86 Z" fill="#5a6350" stroke="#3c4236"/>
+              <path d="M125,83 H175 V97 H125Z" fill="#555e4a" stroke="#3c4236"/>
+              <path d="M131,97 Q150,104 169,97 L172,101 Q150,111 128,101Z" fill="#4a5241" stroke="#33392d"/>
+              <circle cx="146" cy="90" r="1.8" fill="#7f8378"/><circle cx="154" cy="90" r="1.8" fill="#7f8378"/>
+              <path d="M144,72 h12 l-2,7 h-8z" fill="#5d6551" stroke="#8e9184" stroke-width=".6"/>
+              <path d="M146,75.5 q2,-2 4,0 q2,-2 4,0" fill="none" stroke="#b5b6a9" stroke-width=".9"/>
+            </g>
+
+            <g class="nohit">
+              <ellipse cx="70" cy="328" rx="8.5" ry="10.5" fill="#d2ab86" stroke="#a8805f" stroke-width=".6"/>
+              <ellipse cx="215" cy="328" rx="8" ry="10.5" fill="#d2ab86" stroke="#a8805f" stroke-width=".6"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- ===================== ACHTERKANT ===================== -->
+        <div class="face back">
+          <svg viewBox="0 0 300 620" aria-label="Achteraanzicht soldaat">
+            <ellipse cx="150" cy="588" rx="90" ry="8" fill="rgba(0,0,0,.13)" class="nohit"/>
+
+            <g class="hit" data-id="keilhose">
+              <path d="M104,300 L149,300 L146,480 L114,480 Z" fill="#5b6050" stroke="#3d4137"/>
+              <path d="M151,300 L196,300 L186,480 L154,480 Z" fill="#5b6050" stroke="#3d4137"/>
+              <path d="M150,300 V330" stroke="#3d4137" stroke-width=".8"/>
+            </g>
+            <g class="hit" data-id="schnuerschuhe">
+              <path d="M113,548 H147 V578 Q147,583 141,583 H119 Q113,583 113,577Z" fill="#6e5136" stroke="#3a2a1c"/>
+              <path d="M153,548 H187 V577 Q187,583 181,583 H159 Q153,583 153,577Z" fill="#6e5136" stroke="#3a2a1c"/>
+              <path d="M113,574 H147 M153,574 H187" stroke="#2a2018" stroke-width="2"/>
+            </g>
+            <g class="hit" data-id="gamaschen">
+              <path d="M113,476 H147 V553 H113Z M153,476 H187 V553 H153Z" fill="#7b7357" stroke="#4e4a36"/>
+              <path d="M113,496 H147 M113,526 H147 M153,496 H187 M153,526 H187" stroke="#3a2a1c" stroke-width="3.2"/>
+            </g>
+
+            <g class="hit" data-id="feldbluse">
+              <path d="M106,128 C120,121 138,121 150,125 C162,121 180,121 194,128 L199,172 L198,308 C178,314 122,314 102,308 L101,172 Z" fill="#5d6551" stroke="#3c4236"/>
+              <path d="M150,130 V310 M126,200 V310 M174,200 V310" stroke="#3c4236" stroke-width=".7"/>
+              <path d="M110,127 l18,-4 l2,6 l-18,4z M190,127 l-18,-4 l-2,6 l18,4z" fill="#56604b" stroke="#e8e4d8" stroke-width=".8"/>
+            </g>
+
+            <g class="hit" data-id="gasmaske">
+              <path d="M130,126 L152,264" stroke="#2a2620" stroke-width="3.2"/>
+            </g>
+
+            <g class="hit" data-id="yriemen">
+              <path d="M126,124 L132,124 L152,188 L148,188Z M168,124 L174,124 L152,188 L148,188Z" fill="#1f1c19" stroke="#000" stroke-width=".5"/>
+              <rect x="147" y="186" width="6" height="72" fill="#1f1c19"/>
+              <circle cx="150" cy="190" r="4.2" fill="none" stroke="#8a8a80" stroke-width="1.4"/>
+            </g>
+
+            <g class="hit" data-id="koppel">
+              <rect x="101" y="256" width="98" height="12" fill="#1f1c19" stroke="#000" stroke-width=".5"/>
+            </g>
+
+            <g class="hit" data-id="gefechtsgepaeck">
+              <path d="M126,148 L174,148 L180,236 L120,236 Z" fill="#6b6a51" stroke="#4a4935"/>
+              <path d="M129,138 V150 M171,138 V150" stroke="#4a4935" stroke-width="3"/>
+              <path d="M133,152 L128,232 M167,152 L172,232" stroke="#4f4e3a" stroke-width="2"/>
+            </g>
+            <g class="hit" data-id="zeltbahn">
+              <rect x="123" y="204" width="54" height="29" rx="5" fill="url(#splinter)" stroke="#3b3a2c"/>
+              <path d="M126,218 H174" stroke="#3b3a2c" stroke-width=".7" stroke-dasharray="3 2"/>
+            </g>
+            <g class="hit" data-id="kochgeschirr">
+              <path d="M134,150 h32 a7,7 0 0 1 7,7 v38 a7,7 0 0 1 -7,7 h-32 a7,7 0 0 1 -7,-7 v-38 a7,7 0 0 1 7,-7z" fill="#525c48" stroke="#353c2f"/>
+              <path d="M127,165 H173" stroke="#353c2f" stroke-width="1"/>
+              <path d="M136,152 Q150,145 164,152" fill="none" stroke="#8b8f86" stroke-width="1.2"/>
+              <rect x="126" y="176" width="48" height="5" fill="#3e3d2f"/>
+            </g>
+
+            <g class="hit" data-id="gasmaske">
+              <rect x="136" y="261" width="28" height="9" rx="3" fill="#4d5743" stroke="#2f3529"/>
+              <path d="M136,270 h28 a4,4 0 0 1 4,4 v90 a8,8 0 0 1 -8,8 h-20 a8,8 0 0 1 -8,-8 v-90 a4,4 0 0 1 4,-4z" fill="#59634e" stroke="#343b2e"/>
+              <path d="M134,292 h32 M134,312 h32 M134,332 h32 M134,352 h32" stroke="#454e3c" stroke-width="2.4"/>
+            </g>
+
+            <g class="hit" data-id="spaten">
+              <path d="M103,264 h23 l-2,40 q-9.5,9 -19,0 z" fill="#221e1a" stroke="#000" stroke-width=".6"/>
+              <path d="M112,306 h6 l1.5,50 q-4.5,4 -9,0z" fill="#7a5636" stroke="#4a311c" stroke-width=".7"/>
+            </g>
+
+            <g class="hit" data-id="brotbeutel">
+              <path d="M171,266 H199 V334 Q185,342 171,334 Z" fill="#6f6b50" stroke="#4a4734"/>
+              <path d="M171,266 H199 V295 Q185,301 171,295 Z" fill="#7b765a" stroke="#4a4734"/>
+              <rect x="176" y="259" width="5" height="10" fill="#1f1c19"/><rect x="189" y="259" width="5" height="10" fill="#1f1c19"/>
+            </g>
+            <g class="hit" data-id="feldflasche">
+              <path d="M180,284 h18 a4,4 0 0 1 4,4 v42 a10,10 0 0 1 -10,10 h-6 a10,10 0 0 1 -10,-10 v-42 a4,4 0 0 1 4,-4z" fill="#6b5236" stroke="#3f2f1d"/>
+              <rect x="181" y="273" width="16" height="13" rx="2" fill="#262626" stroke="#000" stroke-width=".6"/>
+              <path d="M176,308 h30 M189,273 v68" stroke="#1f1c19" stroke-width="2.2"/>
+            </g>
+
+            <g class="hit" data-id="feldbluse">
+              <path d="M106,128 C95,131 89,140 87,156 L76,312 L96,316 L104,184 Z" fill="#5d6551" stroke="#3c4236"/>
+              <path d="M76,312 L96,316 L96,323 L75,319Z" fill="#535b48" stroke="#3c4236" stroke-width=".7"/>
+              <path d="M194,128 C205,131 211,140 213,156 L236,312 L216,318 L196,184 Z" fill="#5d6551" stroke="#3c4236"/>
+              <path d="M236,312 L216,318 L217,325 L237,319Z" fill="#535b48" stroke="#3c4236" stroke-width=".7"/>
+            </g>
+
+            <g class="nohit">
+              <rect x="141" y="108" width="18" height="20" fill="#d2ab86"/>
+              <ellipse cx="131.5" cy="98" rx="3" ry="6" fill="#cfa682"/>
+              <ellipse cx="168.5" cy="98" rx="3" ry="6" fill="#cfa682"/>
+              <ellipse cx="150" cy="94" rx="19" ry="24" fill="#6b5038"/>
+            </g>
+            <g class="hit" data-id="feldbluse">
+              <path d="M134,118 Q150,125 166,118 L167,129 Q150,136 133,129Z" fill="#555e4a" stroke="#3c4236" stroke-width=".7"/>
+            </g>
+
+            <g class="hit" data-id="feldmuetze">
+              <path d="M127,86 C126,68 136,60 150,60 C164,60 174,68 173,86 Z" fill="#5a6350" stroke="#3c4236"/>
+              <path d="M125,83 H175 V99 H125Z" fill="#555e4a" stroke="#3c4236"/>
+              <path d="M150,62 V84" stroke="#3c4236" stroke-width=".7"/>
+            </g>
+
+            <g class="nohit">
+              <ellipse cx="230" cy="328" rx="8.5" ry="10.5" fill="#d2ab86" stroke="#a8805f" stroke-width=".6"/>
+              <ellipse cx="86" cy="328" rx="8" ry="10.5" fill="#d2ab86" stroke="#a8805f" stroke-width=".6"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+<div class="hint">Klik op een uitrustingsstuk · sleep of veeg om de soldaat te draaien</div>
+
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <aside class="right" id="panelWrap">
+    <div class="sticky panel" id="panel"></div>
+  </aside>
+</main>
+<div class="tip" id="tip"></div>
+
+<script>
+/* =====================================================================
+   GEGEVENS — overgenomen uit het Adviesdocument eerste aankoop (v0.2).
+   Per stuk:
+     minimaal: true  = staat in het adviesdocument (minimale aankoop)
+     koop: { datum, opties:[{naam, url, noot}], opmerking }
+       volgorde van opties = volgorde van voorkeur (1, 2, 3)
+   Stukken zonder koop-advies tonen "Nog geen advies".
+   ===================================================================== */
+const GROEP = {
+  eenheid: "Heer · laatoorlogse uitbeelding · 1943–1945",
+  versie: "Adviesdocument eerste aankoop v0.2",
+  intro: [
+    "Hier zie je wat minimaal nodig is om mee te doen aan evenementen. Kleding en uitrusting zijn maatgevoelig en daardoor in de groep maar beperkt te leen.",
+    "Reken voor de eerste aankoop, inclusief verzendkosten en onderhoud, op een totaal van rond de €1500.",
+    "Overleg ALTIJD eerst met je begeleidend lid of een van de oudere leden voordat je iets bestelt. Zo voorkom je dat je iets verkeerds koopt, en misschien kun je geld besparen door samen te bestellen.",
+    "Bij elk stuk staan de aanbevolen leveranciers, in volgorde van voorkeur. Lees de opmerkingen goed. Heb je een andere leverancier gevonden die goed lijkt? Overleg dan eerst: er kan een reden zijn dat die niet op de lijst staat."
+  ]
+};
+
+const ITEMS = [
+  /* ---------------- Kleding ---------------- */
+  { id:"feldmuetze", groep:"Kleding", naam:"Einheitsfeldmütze M43", nl:"Veldpet met klep", minimaal:true, variant:"var.43",
+    tekst:"Veldpet met klep, gemaakt van feldgrau wol, met een Bevo-adelaar in trapeziumvorm. De omslag kan naar beneden over de oren.",
+    koop:{ datum:"27.09.2023", opties:[{naam:"Elsenau"}],
+      opmerking:"Voorkeur gaat uit naar een origineel insigne. Gebruik je een reproductie-insigne, dan worden die van Elsenau aanbevolen." } },
+
+  { id:"feldbluse", groep:"Kleding", naam:"Feldbluse M43 / M44", nl:"Veldjas", minimaal:true, variant:"var.43 · var.44",
+    tekst:"Veldjas van feldgrau wol met vlakke borstzakken, vlakke heupzakken, rechte zakkleppen en zes knopen.",
+    letop:["Soldbuch in de rechter borstzak, verbandpakje in de binnenzak."],
+    koop:{ datum:"27.09.2023", opties:[{naam:"Schusters"},{naam:"Gavin"},{naam:"Militaria Harbor"}],
+      opmerking:"Op maat bestellen wordt geadviseerd." } },
+
+  { id:"hoheitsabzeichen", groep:"Kleding", naam:"Hoheitsabzeichen", nl:"Borstadelaar", minimaal:true, variant:"var.39 · var.44",
+    tekst:"Geweven muisgrijze adelaar op feldgrau Bevo-stof, op de rechterborst van de veldjas.",
+    juridisch:"Op de adelaar staat een hakenkruis. Draag hem alleen binnen de afspraken van de groep en de regels van het evenement.",
+    koop:{ datum:"01.01.2021", opties:[{naam:"Origineel"},{naam:"Elsenau"}],
+      opmerking:"Informeer bij Thielen voor het naaiwerk en of er een originele adelaar beschikbaar is." } },
+
+  { id:"litzen", groep:"Kleding", naam:"Litzen", nl:"Kraagspiegels", minimaal:true, variant:"var.39",
+    tekst:"Matgrijze algemene kraagspiegels voor op de kraag van de veldjas.",
+    koop:{ datum:"01.01.2021", opties:[{naam:"Origineel"},{naam:"Elsenau"}],
+      opmerking:"Let op dat je geen vooroorlogse of vroegoorlogse varianten koopt. Bij twijfel: informeer bij Thielen." } },
+
+  { id:"diensthemd", groep:"Kleding", naam:"Diensthemd", nl:"Overhemd", minimaal:true, variant:"var.43",
+    tekst:"Grijs-groen overhemd van katoen gemengd met wol of viscose, met kraag en borstzakken. Gedragen onder de veldjas, dus niet zichtbaar op de figuur.",
+    koop:{ datum:"01.01.2021", opties:[{naam:"Neumann", noot:"via Facebook"}],
+      opmerking:"Op maat bestellen wordt geadviseerd." } },
+
+  { id:"keilhose", groep:"Kleding", naam:"Keilhose", nl:"Veldbroek", minimaal:true, variant:"var.43 · var.44",
+    tekst:"Veldbroek van feldgrau wol met toelopende pijpen, zodat hij goed in de gamaschen past.",
+    koop:{ datum:"01.01.2021", opties:[{naam:"Schusters"},{naam:"Gavin"}],
+      opmerking:"Bestel één maat groter in de lengte. Knopen moeten misschien vervangen worden." } },
+
+  { id:"hosentraeger", groep:"Kleding", naam:"Hosenträger", nl:"Bretels", minimaal:true,
+    tekst:"Bretels voor de veldbroek, in V- of Y-model. Gedragen onder de veldjas.",
+    koop:{ datum:"25.04.2021", opties:[{naam:"Replik"},{naam:"eBay of in Nederland"}],
+      opmerking:"Vrije keuze, zolang het in de lijn van de geadviseerde modellen ligt. Bretels waren in die tijd ook niet uniform." } },
+
+  { id:"schnuerschuhe", groep:"Kleding", naam:"Schnürschuhe", nl:"Veterschoenen", minimaal:true, variant:"var.43",
+    tekst:"Veterschoenen met zeven veterogen van ongekleurd leer, met hoefijzers en ijzeren nagels onder de zool.",
+    koop:{ datum:"01.01.2021", opties:[{naam:"Jan Berger"},{naam:"Wehrmachtshoes"},{naam:"Fredericci", noot:"op Nestof"}],
+      opmerking:"Bestel ook lijnzaadolie, ledervet, ledercrème en lederwax. Rapide wordt hiervoor aanbevolen. Vraag om advies." } },
+
+  { id:"gamaschen", groep:"Kleding", naam:"Gamaschen", nl:"Beenwindsels", minimaal:true, variant:"var.43",
+    tekst:"Beenkappen van canvas, gesloten met leren riempjes. Ze zorgen dat er geen vuil in de schoenen komt.",
+    koop:{ datum:"27.09.2023", opties:[{naam:"At The Front", noot:"origineel canvas, leerwerk deels reproductie"}],
+      opmerking:"Vrije keuze in bruin of zwart leer. Kies je VEQP, dan moet het canvas bewerkt worden zodat het soepeler wordt en de kleur wat vervaagt." } },
+
+  /* ---------------- Koppel ---------------- */
+  { id:"koppel", groep:"Koppel & draagstel", naam:"Koppelriemen", nl:"Koppelriem", minimaal:true, variant:"var.40 · var.44",
+    tekst:"Riem van gezwart leer met een stalen haak met verstevigingsribben en een leren tong met stelgaten voor het koppelslot.",
+    koop:{ datum:"27.11.2021", opties:[{naam:"VEQP", noot:"via Facebook"}],
+      opmerking:"VEQP kun je het beste via Lt. Küpfner (Volksgrenadier) bestellen, vanwege de maten en specifieke details." } },
+
+  { id:"koppelschloss", groep:"Koppel & draagstel", naam:"Koppelschloss", nl:"Koppelslot", minimaal:true, variant:"var.41",
+    tekst:"Heeres-koppelslot van staal zonder reliëf rond de krans, geverfd in feldgrau of Einheitsblau.",
+    juridisch:"Het gewone koppelslot heeft een adelaar met hakenkruis. Voor op het veld is er een slot zonder tekst, zodat we niet met hakenkruizen rondlopen.",
+    koop:{ datum:"27.09.2023 · 19.01.2025", opties:[
+        {naam:"Nestof", noot:"var.41, staal"},
+        {naam:"MC4U", noot:"var.41, staal"},
+        {naam:"Nestof", noot:"slot zonder tekst (Legion Condor), voor op het veld"}],
+      opmerking:"Kies het koppelslot van de Hongaarse fabrikant: herkenbaar aan het JFS-stempel aan de binnenkant." } },
+
+  { id:"koppelhaken", groep:"Koppel & draagstel", naam:"Koppelhaken", nl:"Koppelhaken", minimaal:false, variant:"var.42",
+    tekst:"Stalen, geverfde haken die door de veldjas steken en de koppel op hoogte houden. Niet zichtbaar op de figuur.",
+    koop:{ datum:"27.09.2023", opties:[{naam:"Schusters"},{naam:"Elsenau"}],
+      opmerking:"Geen verplicht onderdeel. Zijn er geen stalen beschikbaar, dan mag je ook aluminium gebruiken." } },
+
+  { id:"patronen", groep:"Koppel & draagstel", naam:"Patronentaschen M1911", nl:"Patroontassen (K98)", minimaal:true,
+    tekst:"Twee zwarte lederen tassen met elk drie vakjes, links en rechts voorop de koppel. In elk vakje gaan twee laders van vijf patronen: 30 per tas, 60 in totaal. Het Y-draagstel haakt voorop aan deze tassen.",
+    inhoud:[
+      {n:"Laders (Ladestreifen)", t:"2 per vakje, 6 per tas"},
+      {n:"Dummypatronen", t:"Alleen wat de groep toestaat"}
+    ],
+    letop:["Kies tassen met een goede lus en haak aan de achterkant voor het Y-draagstel."],
+    koop:{ datum:"31.10.2026", opties:[{naam:"eBay", noot:"verkoper Cocomo"}], opmerking:"" } },
+
+  { id:"yriemen", groep:"Koppel & draagstel", naam:"Koppeltraggestell (Y-Riemen)", nl:"Y-draagstel", minimaal:false,
+    tekst:"Lederen draagstel in Y-vorm dat het gewicht van de koppel over de schouders verdeelt. Aan de D-ringen hangt het gevechtspakket." },
+
+  /* ---------------- Bepakking (aanvulling) ---------------- */
+  { id:"brotbeutel", groep:"Bepakking (aanvulling)", naam:"Brotbeutel M31", nl:"Broodzak", minimaal:false,
+    tekst:"Canvas tas die met twee lussen aan de koppel hangt, op de rechterheup. Hier zitten de persoonlijke spullen en het eten voor de dag in. De veldfles hangt eraan.",
+    inhoud:[
+      {n:"Essbesteck", t:"Klapbestek (lepel-vork) of losse lepel en vork"},
+      {n:"Zakmes", t:"Eenvoudig zakmes in periode-stijl"},
+      {n:"Fettbüchse", t:"Bakelieten of blikken vetdoos voor boter of reuzel"},
+      {n:"Brood", t:"Kommissbrot of ander donker brood"},
+      {n:"Esbit-kooktoestel", t:"Opvouwbaar kookstelletje met brandstoftabletten"},
+      {n:"Waszak", t:"Scheermes, scheerzeep, kam, tandenborstel"},
+      {n:"Lederonderhoud", t:"Klein blikje ledervet voor schoenen en koppel"},
+      {n:"Zeltzubehör", t:"Zakje met scheerlijn, stokdelen en haringen voor de zeildoek"},
+      {n:"Persoonlijke spullen", t:"Briefpapier, potlood, tabak of sigaretten, lucifers"}
+    ],
+    letop:["Alleen periode-correcte spullen in het zicht: geen plastic zakjes of telefoon.","Moderne noodzaak (medicatie, telefoon) liever onderin, in een linnen zakje."] },
+
+  { id:"feldflasche", groep:"Bepakking (aanvulling)", naam:"Feldflasche M31", nl:"Veldfles met drinkbeker", minimaal:false,
+    tekst:"Veldfles van 0,8 liter met vilten hoes, draagriemen en drinkbeker. Hangt aan de broodzak." },
+
+  { id:"kochgeschirr", groep:"Bepakking (aanvulling)", naam:"Kochgeschirr M31", nl:"Eetketel", minimaal:false,
+    tekst:"Eetketel in niervorm, veldgrijs geverfd. Het deksel dient als pan of bord. Zit achterop het gevechtspakket of aan de broodzak.",
+    inhoud:[{n:"Eiserne Portion", t:"Noodrantsoen: beschuit en een blik vlees"},{n:"Kleine spullen", t:"Thee of koffie, zout"}] },
+
+  { id:"gefechtsgepaeck", groep:"Bepakking (aanvulling)", naam:"Gefechtsgepäck (A-Rahmen)", nl:"Gevechtspakket", minimaal:false,
+    tekst:"Canvas frame aan de D-ringen van het Y-draagstel. Hierop zitten de eetketel en de opgerolde zeildoek." },
+
+  { id:"zeltbahn", groep:"Bepakking (aanvulling)", naam:"Zeltbahn 31", nl:"Zeildoek", minimaal:false,
+    tekst:"Driehoekig zeildoek in camouflagedruk. Te dragen als regenponcho, of met vier stuks samen te knopen tot een tent." },
+
+  { id:"gasmaske", groep:"Bepakking (aanvulling)", naam:"Gasmaskenbüchse", nl:"Gasmaskerbus", minimaal:false,
+    tekst:"Gegroefde metalen bus voor het gasmasker, aan een riem over de schouder en achterop de heup gedragen.",
+    inhoud:[{n:"Gasmasker", t:"Mag ontbreken: de bus wordt vaak leeg gedragen"},{n:"Reserve-Klarscheiben", t:"Antiwaas-glaasjes in het deksel"},{n:"Gasplane", t:"Beschermcape tegen gas, in een tasje op de riem"}] },
+
+  { id:"spaten", groep:"Bepakking (aanvulling)", naam:"Kleines Schanzzeug", nl:"Rechte schep met foedraal", minimaal:false,
+    tekst:"Korte schep met vast blad en houten steel, in een foedraal van leer of geperst karton (Preßstoff) aan de koppel op de linkerheup. Het blad zit in het foedraal, de steel wijst naar beneden." }];
+</script>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const byId = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+  const order = ITEMS.map(i => i.id);
+  const onFigure = new Set([...document.querySelectorAll('.hit')].map(g => g.dataset.id));
+  const frontIds = new Set([...document.querySelectorAll('.front .hit')].map(g => g.dataset.id));
+  const backIds = new Set([...document.querySelectorAll('.back .hit')].map(g => g.dataset.id));
+  $('#eenheid').textContent = GROEP.eenheid;
+
+  // ---- bezit (per bezoeker, in deze browser) ----
+  let have = {};
+  try { have = JSON.parse(localStorage.getItem('uitrusting-bezit') || '{}'); } catch(e){}
+  const saveHave = () => { try { localStorage.setItem('uitrusting-bezit', JSON.stringify(have)); } catch(e){} };
+
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  // ---- chips ----
+  function renderChips(){
+    const groups = {};
+    ITEMS.forEach(i => (groups[i.groep] ||= []).push(i));
+    $('#chips').innerHTML = Object.entries(groups).map(([g, list]) =>
+      `<h3>${esc(g)}</h3><div class="chiprow">` +
+      list.map(i => `<button type="button" class="chip${have[i.id]?' have':''}${i.id===current?' sel':''}" data-id="${i.id}"><span class="dot"></span>${esc(i.naam)}</button>`).join('') +
+      `</div>`).join('');
+  }
+
+  function renderProgress(){
+    const req = ITEMS.filter(i => i.minimaal); const n = req.filter(i => have[i.id]).length;
+    $('#progText').textContent = `${n} van ${req.length} minimale stukken in bezit`;
+    $('#progBar').style.width = (100*n/req.length) + '%';
+  }
+
+  // ---- paneel ----
+  let current = null;
+  function renderPanel(){
+    const p = $('#panel');
+    if(!current){
+      p.innerHTML = `<div class="empty-state">
+        <div class="eyebrow">Welkom bij de groep</div>
+        <h2>Wat heb je nodig?</h2>
+        ${GROEP.intro.map(t=>`<p>${esc(t)}</p>`).join('')}
+        <p><b style="color:var(--ink)">Minimaal</b> = staat in het adviesdocument, nodig voor je eerste evenement. <b style="color:var(--ink)">Aanvulling</b> = later, na overleg.</p>
+        <p style="font-size:13px">Bron: ${esc(GROEP.versie)}</p>
+      </div>`;
+      return;
+    }
+    const i = byId[current];
+    const k = i.koop || {};
+    const idx = order.indexOf(current);
+    const prev = byId[order[(idx-1+order.length)%order.length]];
+    const next = byId[order[(idx+1)%order.length]];
+    let where = '';
+    if(onFigure.has(i.id)){
+      const f = frontIds.has(i.id), b = backIds.has(i.id);
+      where = f && b ? 'Voor- en achterkant' : f ? 'Zichtbaar van voren' : 'Zichtbaar van achteren';
+    } else where = 'Niet zichtbaar op de figuur';
+
+    p.innerHTML = `
+      <div class="eyebrow">${esc(i.groep)}</div>
+      <h2>${esc(i.naam)}</h2>
+      <p class="nl">${esc(i.nl)}</p>
+      <div class="tags">
+        <span class="tag ${i.minimaal?'basis':''}">${i.minimaal?'Minimaal':'Aanvulling'}</span>
+        ${i.variant ? `<span class="tag">${esc(i.variant)}</span>` : ''}
+        <span class="tag">${where}</span>
+      </div>
+      <p>${esc(i.tekst)}</p>
+      ${i.juridisch ? `<div class="legal">${esc(i.juridisch)}</div>` : ''}
+      ${i.inhoud ? `<h4>Wat hoort erin</h4><ul class="contents">${i.inhoud.map((c,n)=>`<li><span class="num">${String(n+1).padStart(2,'0')}</span><div><b>${esc(c.n)}</b><span class="n">${esc(c.t)}</span></div></li>`).join('')}</ul>` : ''}
+      ${i.letop ? `<h4>Let op</h4><ul>${i.letop.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+      <h4>Waar kopen — advies van de groep</h4>
+      ${(k.opties && k.opties.length) ? `<div class="buy"><ol class="shops">${k.opties.map(o=>`<li><span class="shop">${o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.naam)}</a>`:esc(o.naam)}</span>${o.noot?`<span class="noot">${esc(o.noot)}</span>`:''}</li>`).join('')}</ol>
+          ${k.opmerking ? `<p class="opm">${esc(k.opmerking)}</p>` : ''}
+          ${k.datum ? `<div class="datum">Advies d.d. ${esc(k.datum)}</div>` : ''}</div>`
+        : `<div class="buy empty">${k.opmerking?esc(k.opmerking)+' ':''}Nog geen advies in het adviesdocument. Overleg met je begeleidend lid.</div>`}
+      <p class="overleg">Overleg altijd eerst met je begeleidend lid voordat je iets bestelt.</p>
+      <label class="have"><input type="checkbox" id="haveBox" ${have[i.id]?'checked':''}> Heb ik al</label>
+      <div class="nav">
+        <button class="btn ghost" type="button" data-go="${prev.id}">← ${esc(prev.naam.split(' ')[0])}</button>
+        <button class="btn ghost back-up" type="button" id="backUp">↑ Figuur</button>
+        <button class="btn ghost" type="button" data-go="${next.id}">${esc(next.naam.split(' ')[0])} →</button>
+      </div>`;
+    $('#haveBox').addEventListener('change', e => { have[i.id] = e.target.checked; if(!have[i.id]) delete have[i.id]; saveHave(); renderChips(); renderProgress(); });
+    p.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => select(b.dataset.go, true)));
+    const bu = $('#backUp'); if(bu) bu.addEventListener('click', () => $('#stage').scrollIntoView({behavior:'smooth', block:'start'}));
+  }
+
+  function select(id, fromNav){
+    if(!byId[id]) return;
+    current = id;
+    document.querySelectorAll('.hit').forEach(g => g.classList.toggle('sel', g.dataset.id === id));
+    // draai mee als het stuk alleen aan de andere kant zichtbaar is
+    {
+      if(flipped && frontIds.has(id) && !backIds.has(id)) setFlip(false);
+      else if(!flipped && backIds.has(id) && !frontIds.has(id)) setFlip(true);
+    }
+    renderPanel(); renderChips();
+    if(location.hash !== '#'+id) history.replaceState(null, '', '#'+id);
+    if(window.matchMedia('(max-width:820px)').matches && !fromNav){
+      $('#panelWrap').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  }
+
+  // ---- draaien ----
+  let flipped = false, angle = 0;
+  const card = $('#card'), stage = $('#stage');
+  function setFlip(v){
+    flipped = v; angle = v ? 180 : 0;
+    card.classList.remove('nodelay');
+    card.style.transform = `rotateY(${angle}deg)`;
+    $('#viewLabel').textContent = v ? 'Achteraanzicht' : 'Vooraanzicht';
+  }
+  $('#flipBtn').addEventListener('click', () => setFlip(!flipped));
+
+  let dragStart = null, dragged = false;
+  stage.addEventListener('pointerdown', e => { dragStart = {x:e.clientX, a:angle}; dragged = false; });
+  window.addEventListener('pointermove', e => {
+    if(!dragStart) return;
+    const dx = e.clientX - dragStart.x;
+    if(Math.abs(dx) > 6){
+      if(!dragged){ dragged = true; stage.classList.add('dragging'); card.classList.add('nodelay'); try{stage.setPointerCapture(e.pointerId)}catch(_){} }
+      angle = dragStart.a + dx * 0.7;
+      card.style.transform = `rotateY(${angle}deg)`;
+    }
+  });
+  window.addEventListener('pointerup', () => {
+    if(!dragStart) return;
+    dragStart = null; stage.classList.remove('dragging');
+    if(dragged){
+      const norm = ((angle % 360) + 360) % 360;
+      const back = norm > 90 && norm < 270;
+      // snap naar dichtstbijzijnde zijde
+      angle = Math.round(angle/180)*180;
+      card.classList.remove('nodelay');
+      card.style.transform = `rotateY(${angle}deg)`;
+      flipped = back;
+      $('#viewLabel').textContent = back ? 'Achteraanzicht' : 'Vooraanzicht';
+    }
+  });
+
+  // ---- klikken & tooltip ----
+  const tip = $('#tip');
+  document.querySelectorAll('.hit').forEach(g => {
+    g.addEventListener('click', e => { if(dragged){ e.preventDefault(); return; } select(g.dataset.id); });
+    g.addEventListener('pointerenter', () => { tip.textContent = byId[g.dataset.id]?.naam || ''; tip.classList.add('on'); });
+    g.addEventListener('pointerleave', () => tip.classList.remove('on'));
+  });
+  window.addEventListener('pointermove', e => { tip.style.left = e.clientX+'px'; tip.style.top = e.clientY+'px'; });
+  $('#chips').addEventListener('click', e => { const c = e.target.closest('.chip'); if(c) select(c.dataset.id); });
+
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if(h && h !== current) select(h, true); });
+
+  renderChips(); renderProgress(); renderPanel();
+  const h = location.hash.slice(1); if(byId[h]) select(h, true);
+})();
+</script>
+</body>
+</html>
