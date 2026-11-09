@@ -37,19 +37,21 @@
   .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
   .btn.ghost:hover{background:var(--accent-soft)}
 
-  .stage{perspective:1400px;width:100%;max-width:420px;margin:0 auto;aspect-ratio:300/620;max-height:72vh;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
+  .stage{perspective:1400px;height:min(80vh,1150px);width:auto;max-width:100%;margin:0 auto;aspect-ratio:640/1860;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
   .stage.dragging{cursor:grabbing}
   .card{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,.7,.2,1)}
   .card.nodelay{transition:none}
   .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
   .face.back{transform:rotateY(180deg)}
-  .face svg{width:100%;height:100%;display:block;overflow:visible}
+  .face svg{width:100%;height:100%;display:block}
   .hint{text-align:center;font-size:13px;color:var(--muted);margin:4px 0 14px;font-style:italic}
 
-  .hit{cursor:pointer}
-  .hit *{transition:filter .15s}
-  .hit:hover *{filter:brightness(1.25)}
-  .hit.sel *{stroke:var(--accent);stroke-width:2.2px;filter:brightness(1.2) drop-shadow(0 0 3px rgba(155,44,31,.55))}
+  .face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border:1px solid var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.18);pointer-events:none}
+  .face svg{position:absolute;inset:0}
+  .hit{cursor:pointer;fill:transparent;stroke:transparent;stroke-width:2px;vector-effect:non-scaling-stroke;stroke-linejoin:round;transition:fill .15s,stroke .15s}
+  .hit:hover{fill:rgba(255,255,255,.16);stroke:rgba(255,255,255,.9)}
+  .stage.show .hit{fill:rgba(255,255,255,.10);stroke:rgba(255,255,255,.75);stroke-dasharray:5 4}
+  .hit.sel,.stage.show .hit.sel{fill:rgba(155,44,31,.30);stroke:#e0523f;stroke-width:3px;stroke-dasharray:none}
   .nohit{pointer-events:none}
 
   .tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--paper);font-family:"IBM Plex Mono",monospace;
@@ -105,7 +107,7 @@
     .left{border-right:0;padding:12px 14px 6px}
     .right{padding:18px 16px 28px;border-top:2px solid var(--ink)}
     .right .sticky{position:static}
-    .stage{max-height:62vh}
+    .stage{height:72vh}
     .back-up{display:inline-block}
   }
 </style>
@@ -126,230 +128,50 @@
   <section class="left">
     <div class="toolbar">
       <span class="viewlabel" id="viewLabel">Vooraanzicht</span>
-      <button class="btn" id="flipBtn" type="button">↻ Draai om</button>
+      <span style="display:flex;gap:6px"><button class="btn ghost" id="showBtn" type="button">Toon klikvlakken</button><button class="btn" id="flipBtn" type="button">↻ Draai om</button></span>
     </div>
 
     <div class="stage" id="stage">
       <div class="card" id="card">
-        <!-- ===================== VOORKANT ===================== -->
         <div class="face front">
-          <svg viewBox="0 0 300 620" aria-label="Vooraanzicht soldaat">
-            <defs>
-              <pattern id="splinter" width="40" height="30" patternUnits="userSpaceOnUse">
-                <rect width="40" height="30" fill="#8b8566"/>
-                <path d="M0,4 L14,0 L22,8 L10,14Z" fill="#55603d"/>
-                <path d="M24,12 L40,6 L38,20 L28,22Z" fill="#6c5a3c"/>
-                <path d="M4,20 L18,16 L22,28 L2,30Z" fill="#55603d"/>
-                <g stroke="#3d4a2d" stroke-width=".8"><path d="M3,0v6M9,10v6M17,2v6M27,0v5M33,12v6M13,20v6M37,22v6M23,14v5"/></g>
-              </pattern>
-            </defs>
-            <ellipse cx="150" cy="588" rx="90" ry="8" fill="rgba(0,0,0,.13)" class="nohit"/>
-
-            <g class="hit" data-id="keilhose">
-              <path d="M104,300 L149,300 L146,480 L114,480 Z" fill="#5b6050" stroke="#3d4137"/>
-              <path d="M151,300 L196,300 L186,480 L154,480 Z" fill="#5b6050" stroke="#3d4137"/>
-            </g>
-            <g class="hit" data-id="schnuerschuhe">
-              <path d="M114,548 H146 V573 Q146,583 136,583 H104 Q95,583 98,575 Q102,566 114,563Z" fill="#6e5136" stroke="#3a2a1c"/>
-              <path d="M154,548 H186 V563 Q198,566 202,575 Q205,583 196,583 H164 Q154,583 154,573Z" fill="#6e5136" stroke="#3a2a1c"/>
-              <path d="M98,580 H146 M154,580 H203" stroke="#2a2018" stroke-width="2"/>
-            </g>
-            <g class="hit" data-id="gamaschen">
-              <path d="M113,476 H147 V553 H113Z M153,476 H187 V553 H153Z" fill="#7b7357" stroke="#4e4a36"/>
-              <path d="M113,496 H147 M113,526 H147 M153,496 H187 M153,526 H187" stroke="#3a2a1c" stroke-width="3.2"/>
-              <path d="M140,493 h5 v6 h-5z M140,523 h5 v6 h-5z M180,493 h5 v6 h-5z M180,523 h5 v6 h-5z" fill="#8a8a80"/>
-            </g>
-
-            <g class="hit" data-id="feldbluse">
-              <path d="M106,128 C120,121 138,121 150,125 C162,121 180,121 194,128 L199,172 L198,308 C178,314 122,314 102,308 L101,172 Z" fill="#5d6551" stroke="#3c4236"/>
-              <path d="M150,136 V310" stroke="#3c4236" stroke-width=".8"/>
-              <path d="M114,150 h28 v30 h-28z M158,150 h28 v30 h-28z" fill="#5a624e" stroke="#3c4236" stroke-width=".8"/>
-              <path d="M113,148 h30 v9 h-30z M157,148 h30 v9 h-30z" fill="#626a56" stroke="#3c4236" stroke-width=".8"/>
-              <path d="M110,127 l18,-4 l2,6 l-18,4z M190,127 l-18,-4 l-2,6 l18,4z" fill="#56604b" stroke="#e8e4d8" stroke-width=".8"/>
-              <g fill="#7f8378" stroke="#4d5047" stroke-width=".6">
-                <circle cx="150" cy="146" r="2.6"/><circle cx="150" cy="170" r="2.6"/><circle cx="150" cy="194" r="2.6"/><circle cx="150" cy="218" r="2.6"/><circle cx="150" cy="242" r="2.6"/><circle cx="150" cy="292" r="2.6"/>
-              </g>
-            </g>
-            <g class="hit" data-id="hoheitsabzeichen">
-              <path d="M116,140 q6,-6 12,0 q6,-6 12,0 l-12,3.5z" fill="#a8aa9c" stroke="#6f7268" stroke-width=".5"/>
-            </g>
-
-            <g class="hit" data-id="yriemen">
-              <path d="M126,124 L132,124 L127,258 L121,258 Z M168,124 L174,124 L179,258 L173,258 Z" fill="#1f1c19" stroke="#000" stroke-width=".5"/>
-              <circle cx="129" cy="176" r="3.2" fill="none" stroke="#8a8a80" stroke-width="1.3"/>
-              <circle cx="171" cy="176" r="3.2" fill="none" stroke="#8a8a80" stroke-width="1.3"/>
-            </g>
-
-            <g class="hit" data-id="brotbeutel">
-              <path d="M85,266 H110 V332 Q97.5,340 85,332 Z" fill="#6f6b50" stroke="#4a4734"/>
-              <path d="M85,266 H110 V293 Q97.5,299 85,293 Z" fill="#7b765a" stroke="#4a4734"/>
-              <rect x="90" y="259" width="5" height="10" fill="#1f1c19"/><rect x="101" y="259" width="5" height="10" fill="#1f1c19"/>
-            </g>
-
-            <g class="hit" data-id="koppel">
-              <rect x="101" y="256" width="98" height="12" fill="#1f1c19" stroke="#000" stroke-width=".5"/>
-            </g>
-            <g class="hit" data-id="patronen">
-              <rect x="106" y="266" width="35" height="31" rx="3" fill="#24201c" stroke="#000" stroke-width=".6"/>
-              <path d="M117.7,267v29M129.3,267v29M107,276h33" stroke="#3d3630" stroke-width="1"/>
-              <rect x="159" y="266" width="35" height="31" rx="3" fill="#24201c" stroke="#000" stroke-width=".6"/>
-              <path d="M170.7,267v29M182.3,267v29M160,276h33" stroke="#3d3630" stroke-width="1"/>
-            </g>
-            <g class="hit" data-id="koppelschloss">
-              <rect x="142" y="253.5" width="16" height="17" rx="2" fill="#7d8378" stroke="#4b4f47"/>
-              <circle cx="150" cy="262" r="5" fill="none" stroke="#5c6158" stroke-width="1"/>
-            </g>
-
-            <g class="hit" data-id="feldbluse">
-              <path d="M106,128 C95,131 89,140 87,156 L64,312 L84,318 L104,184 Z" fill="#5d6551" stroke="#3c4236"/>
-              <path d="M64,312 L84,318 L83,325 L63,319Z" fill="#535b48" stroke="#3c4236" stroke-width=".7"/>
-              <path d="M194,128 C205,131 211,140 213,156 L224,312 L204,316 L196,184 Z" fill="#5d6551" stroke="#3c4236"/>
-              <path d="M224,312 L204,316 L204,323 L225,319Z" fill="#535b48" stroke="#3c4236" stroke-width=".7"/>
-            </g>
-
-            <g class="nohit">
-              <rect x="141" y="110" width="18" height="18" fill="#d2ab86"/>
-              <ellipse cx="131.5" cy="98" rx="3" ry="6" fill="#cfa682"/>
-              <ellipse cx="168.5" cy="98" rx="3" ry="6" fill="#cfa682"/>
-              <ellipse cx="150" cy="94" rx="19" ry="24" fill="#d8b28d"/>
-              <path d="M141,107 h6 M153,107 h6" stroke="#3a2a20" stroke-width="1.4" stroke-linecap="round"/>
-              <path d="M150,108 l-2,5 h4" fill="none" stroke="#a8805f" stroke-width="1"/>
-              <path d="M146,115.5 h8" stroke="#8f5f4a" stroke-width="1.2" stroke-linecap="round"/>
-            </g>
-            <g class="hit" data-id="feldbluse">
-              <path d="M136,122 L150,136 L164,122 L170,131 L150,144 L130,131 Z" fill="#555e4a" stroke="#3c4236" stroke-width=".7"/>
-            </g>
-            <g class="hit" data-id="litzen">
-              <path d="M133,128 l9,6.5 M167,128 l-9,6.5" stroke="#a9aa9e" stroke-width="2.2"/>
-            </g>
-
-            <g class="hit" data-id="feldmuetze">
-              <path d="M127,86 C126,68 136,60 150,60 C164,60 174,68 173,86 Z" fill="#5a6350" stroke="#3c4236"/>
-              <path d="M125,83 H175 V97 H125Z" fill="#555e4a" stroke="#3c4236"/>
-              <path d="M131,97 Q150,104 169,97 L172,101 Q150,111 128,101Z" fill="#4a5241" stroke="#33392d"/>
-              <circle cx="146" cy="90" r="1.8" fill="#7f8378"/><circle cx="154" cy="90" r="1.8" fill="#7f8378"/>
-              <path d="M144,72 h12 l-2,7 h-8z" fill="#5d6551" stroke="#8e9184" stroke-width=".6"/>
-              <path d="M146,75.5 q2,-2 4,0 q2,-2 4,0" fill="none" stroke="#b5b6a9" stroke-width=".9"/>
-            </g>
-
-            <g class="nohit">
-              <ellipse cx="70" cy="328" rx="8.5" ry="10.5" fill="#d2ab86" stroke="#a8805f" stroke-width=".6"/>
-              <ellipse cx="215" cy="328" rx="8" ry="10.5" fill="#d2ab86" stroke="#a8805f" stroke-width=".6"/>
-            </g>
+          <img src="voor.jpg" alt="Vooraanzicht soldaat in laatoorlogse uitrusting" draggable="false">
+          <svg viewBox="0 0 640 1860" preserveAspectRatio="none" aria-label="Klikvlakken vooraanzicht">
+            <polygon class="hit" data-id="feldbluse" points="85,330 140,290 205,255 300,240 380,280 450,310 520,380 580,470 625,600 630,760 560,820 500,850 470,960 420,1000 250,1020 100,1020 60,980 70,700 75,450"/>
+            <polygon class="hit" data-id="keilhose" points="100,1005 470,995 500,1150 540,1400 555,1560 430,1555 400,1450 330,1260 330,1450 320,1530 200,1530 150,1450 110,1300"/>
+            <polygon class="hit" data-id="gamaschen" points="190,1515 320,1520 318,1675 200,1675"/>
+            <polygon class="hit" data-id="gamaschen" points="420,1545 545,1540 548,1690 440,1700"/>
+            <polygon class="hit" data-id="schnuerschuhe" points="195,1665 320,1665 325,1780 250,1800 60,1845 30,1825 120,1770 190,1725"/>
+            <polygon class="hit" data-id="schnuerschuhe" points="440,1695 545,1690 555,1800 540,1850 470,1860 420,1855 430,1780"/>
+            <polygon class="hit" data-id="yriemen" points="140,320 165,320 140,560 110,560"/>
+            <polygon class="hit" data-id="yriemen" points="330,265 355,265 320,520 290,520 280,450 305,450"/>
+            <polygon class="hit" data-id="litzen" points="215,330 250,320 275,330 270,392 240,395 218,370"/>
+            <polygon class="hit" data-id="stahlhelm" points="55,120 80,70 130,20 230,10 300,40 320,110 335,180 300,195 240,170 150,155 90,150 55,135"/>
           </svg>
         </div>
-
-        <!-- ===================== ACHTERKANT ===================== -->
         <div class="face back">
-          <svg viewBox="0 0 300 620" aria-label="Achteraanzicht soldaat">
-            <ellipse cx="150" cy="588" rx="90" ry="8" fill="rgba(0,0,0,.13)" class="nohit"/>
-
-            <g class="hit" data-id="keilhose">
-              <path d="M104,300 L149,300 L146,480 L114,480 Z" fill="#5b6050" stroke="#3d4137"/>
-              <path d="M151,300 L196,300 L186,480 L154,480 Z" fill="#5b6050" stroke="#3d4137"/>
-              <path d="M150,300 V330" stroke="#3d4137" stroke-width=".8"/>
-            </g>
-            <g class="hit" data-id="schnuerschuhe">
-              <path d="M113,548 H147 V578 Q147,583 141,583 H119 Q113,583 113,577Z" fill="#6e5136" stroke="#3a2a1c"/>
-              <path d="M153,548 H187 V577 Q187,583 181,583 H159 Q153,583 153,577Z" fill="#6e5136" stroke="#3a2a1c"/>
-              <path d="M113,574 H147 M153,574 H187" stroke="#2a2018" stroke-width="2"/>
-            </g>
-            <g class="hit" data-id="gamaschen">
-              <path d="M113,476 H147 V553 H113Z M153,476 H187 V553 H153Z" fill="#7b7357" stroke="#4e4a36"/>
-              <path d="M113,496 H147 M113,526 H147 M153,496 H187 M153,526 H187" stroke="#3a2a1c" stroke-width="3.2"/>
-            </g>
-
-            <g class="hit" data-id="feldbluse">
-              <path d="M106,128 C120,121 138,121 150,125 C162,121 180,121 194,128 L199,172 L198,308 C178,314 122,314 102,308 L101,172 Z" fill="#5d6551" stroke="#3c4236"/>
-              <path d="M150,130 V310 M126,200 V310 M174,200 V310" stroke="#3c4236" stroke-width=".7"/>
-              <path d="M110,127 l18,-4 l2,6 l-18,4z M190,127 l-18,-4 l-2,6 l18,4z" fill="#56604b" stroke="#e8e4d8" stroke-width=".8"/>
-            </g>
-
-            <g class="hit" data-id="gasmaske">
-              <path d="M130,126 L152,264" stroke="#2a2620" stroke-width="3.2"/>
-            </g>
-
-            <g class="hit" data-id="yriemen">
-              <path d="M126,124 L132,124 L152,188 L148,188Z M168,124 L174,124 L152,188 L148,188Z" fill="#1f1c19" stroke="#000" stroke-width=".5"/>
-              <rect x="147" y="186" width="6" height="72" fill="#1f1c19"/>
-              <circle cx="150" cy="190" r="4.2" fill="none" stroke="#8a8a80" stroke-width="1.4"/>
-            </g>
-
-            <g class="hit" data-id="koppel">
-              <rect x="101" y="256" width="98" height="12" fill="#1f1c19" stroke="#000" stroke-width=".5"/>
-            </g>
-
-            <g class="hit" data-id="gefechtsgepaeck">
-              <path d="M126,148 L174,148 L180,236 L120,236 Z" fill="#6b6a51" stroke="#4a4935"/>
-              <path d="M129,138 V150 M171,138 V150" stroke="#4a4935" stroke-width="3"/>
-              <path d="M133,152 L128,232 M167,152 L172,232" stroke="#4f4e3a" stroke-width="2"/>
-            </g>
-            <g class="hit" data-id="zeltbahn">
-              <rect x="123" y="204" width="54" height="29" rx="5" fill="url(#splinter)" stroke="#3b3a2c"/>
-              <path d="M126,218 H174" stroke="#3b3a2c" stroke-width=".7" stroke-dasharray="3 2"/>
-            </g>
-            <g class="hit" data-id="kochgeschirr">
-              <path d="M134,150 h32 a7,7 0 0 1 7,7 v38 a7,7 0 0 1 -7,7 h-32 a7,7 0 0 1 -7,-7 v-38 a7,7 0 0 1 7,-7z" fill="#525c48" stroke="#353c2f"/>
-              <path d="M127,165 H173" stroke="#353c2f" stroke-width="1"/>
-              <path d="M136,152 Q150,145 164,152" fill="none" stroke="#8b8f86" stroke-width="1.2"/>
-              <rect x="126" y="176" width="48" height="5" fill="#3e3d2f"/>
-            </g>
-
-            <g class="hit" data-id="gasmaske">
-              <rect x="136" y="261" width="28" height="9" rx="3" fill="#4d5743" stroke="#2f3529"/>
-              <path d="M136,270 h28 a4,4 0 0 1 4,4 v90 a8,8 0 0 1 -8,8 h-20 a8,8 0 0 1 -8,-8 v-90 a4,4 0 0 1 4,-4z" fill="#59634e" stroke="#343b2e"/>
-              <path d="M134,292 h32 M134,312 h32 M134,332 h32 M134,352 h32" stroke="#454e3c" stroke-width="2.4"/>
-            </g>
-
-            <g class="hit" data-id="spaten">
-              <path d="M103,264 h23 l-2,40 q-9.5,9 -19,0 z" fill="#221e1a" stroke="#000" stroke-width=".6"/>
-              <path d="M112,306 h6 l1.5,50 q-4.5,4 -9,0z" fill="#7a5636" stroke="#4a311c" stroke-width=".7"/>
-            </g>
-
-            <g class="hit" data-id="brotbeutel">
-              <path d="M171,266 H199 V334 Q185,342 171,334 Z" fill="#6f6b50" stroke="#4a4734"/>
-              <path d="M171,266 H199 V295 Q185,301 171,295 Z" fill="#7b765a" stroke="#4a4734"/>
-              <rect x="176" y="259" width="5" height="10" fill="#1f1c19"/><rect x="189" y="259" width="5" height="10" fill="#1f1c19"/>
-            </g>
-            <g class="hit" data-id="feldflasche">
-              <path d="M180,284 h18 a4,4 0 0 1 4,4 v42 a10,10 0 0 1 -10,10 h-6 a10,10 0 0 1 -10,-10 v-42 a4,4 0 0 1 4,-4z" fill="#6b5236" stroke="#3f2f1d"/>
-              <rect x="181" y="273" width="16" height="13" rx="2" fill="#262626" stroke="#000" stroke-width=".6"/>
-              <path d="M176,308 h30 M189,273 v68" stroke="#1f1c19" stroke-width="2.2"/>
-            </g>
-
-            <g class="hit" data-id="feldbluse">
-              <path d="M106,128 C95,131 89,140 87,156 L76,312 L96,316 L104,184 Z" fill="#5d6551" stroke="#3c4236"/>
-              <path d="M76,312 L96,316 L96,323 L75,319Z" fill="#535b48" stroke="#3c4236" stroke-width=".7"/>
-              <path d="M194,128 C205,131 211,140 213,156 L236,312 L216,318 L196,184 Z" fill="#5d6551" stroke="#3c4236"/>
-              <path d="M236,312 L216,318 L217,325 L237,319Z" fill="#535b48" stroke="#3c4236" stroke-width=".7"/>
-            </g>
-
-            <g class="nohit">
-              <rect x="141" y="108" width="18" height="20" fill="#d2ab86"/>
-              <ellipse cx="131.5" cy="98" rx="3" ry="6" fill="#cfa682"/>
-              <ellipse cx="168.5" cy="98" rx="3" ry="6" fill="#cfa682"/>
-              <ellipse cx="150" cy="94" rx="19" ry="24" fill="#6b5038"/>
-            </g>
-            <g class="hit" data-id="feldbluse">
-              <path d="M134,118 Q150,125 166,118 L167,129 Q150,136 133,129Z" fill="#555e4a" stroke="#3c4236" stroke-width=".7"/>
-            </g>
-
-            <g class="hit" data-id="feldmuetze">
-              <path d="M127,86 C126,68 136,60 150,60 C164,60 174,68 173,86 Z" fill="#5a6350" stroke="#3c4236"/>
-              <path d="M125,83 H175 V99 H125Z" fill="#555e4a" stroke="#3c4236"/>
-              <path d="M150,62 V84" stroke="#3c4236" stroke-width=".7"/>
-            </g>
-
-            <g class="nohit">
-              <ellipse cx="230" cy="328" rx="8.5" ry="10.5" fill="#d2ab86" stroke="#a8805f" stroke-width=".6"/>
-              <ellipse cx="86" cy="328" rx="8" ry="10.5" fill="#d2ab86" stroke="#a8805f" stroke-width=".6"/>
-            </g>
+          <img src="achter.jpg" alt="Achteraanzicht soldaat in laatoorlogse uitrusting" draggable="false">
+          <svg viewBox="0 0 640 1860" preserveAspectRatio="none" aria-label="Klikvlakken achteraanzicht">
+            <polygon class="hit" data-id="feldbluse" points="30,600 55,430 110,380 400,345 480,375 530,470 565,650 585,860 560,960 500,970 450,760 150,700 40,720"/>
+            <polygon class="hit" data-id="keilhose" points="140,990 500,990 495,1300 470,1500 450,1590 330,1590 320,1400 300,1250 260,1400 250,1580 125,1580 120,1400 130,1200"/>
+            <polygon class="hit" data-id="gamaschen" points="125,1575 240,1570 240,1700 135,1700"/>
+            <polygon class="hit" data-id="gamaschen" points="330,1580 445,1590 445,1720 345,1730"/>
+            <polygon class="hit" data-id="schnuerschuhe" points="130,1695 245,1695 255,1780 230,1810 135,1810"/>
+            <polygon class="hit" data-id="schnuerschuhe" points="325,1725 450,1720 500,1740 560,1780 565,1800 450,1830 330,1835 320,1780"/>
+            <polygon class="hit" data-id="koppel" points="300,700 440,695 440,730 300,740"/>
+            <polygon class="hit" data-id="yriemen" points="200,375 305,375 275,430 258,450 260,560 278,700 256,700 222,575 215,450 200,420"/>
+            <polygon class="hit" data-id="brotbeutel" points="285,770 440,770 462,900 470,1050 430,1080 300,1050 265,1000 262,840"/>
+            <polygon class="hit" data-id="feldflasche" points="365,770 400,770 405,855 430,855 435,940 450,1000 440,1080 400,1115 345,1110 300,1060 305,980 330,940 330,855 360,855"/>
+            <polygon class="hit" data-id="kochgeschirr" points="148,835 255,830 262,985 230,1000 175,995 150,975"/>
+            <polygon class="hit" data-id="gasmaske" points="85,400 115,400 112,700 86,700"/>
+            <polygon class="hit" data-id="gasmaske" points="45,705 110,695 240,705 290,730 300,790 270,825 200,820 60,800 45,760"/>
+            <polygon class="hit" data-id="zeltbahn" points="85,280 140,260 240,250 330,250 370,262 395,300 390,340 350,355 300,350 240,370 160,375 105,385 85,340"/>
+            <polygon class="hit" data-id="stahlhelm" points="195,190 210,140 230,70 280,45 350,40 400,70 415,130 435,160 425,190 390,210 330,232 260,235 205,220"/>
           </svg>
         </div>
       </div>
     </div>
     
-<div class="hint">Klik op een uitrustingsstuk · sleep of veeg om de soldaat te draaien</div>
+<div class="hint">Klik op een uitrustingsstuk · draai om voor de achterkant</div>
 
     <div class="chips" id="chips"></div>
   </section>
@@ -428,6 +250,9 @@ const ITEMS = [
     tekst:"Beenkappen van canvas, gesloten met leren riempjes. Ze zorgen dat er geen vuil in de schoenen komt.",
     koop:{ datum:"27.09.2023", opties:[{naam:"At The Front", noot:"origineel canvas, leerwerk deels reproductie"}],
       opmerking:"Vrije keuze in bruin of zwart leer. Kies je VEQP, dan moet het canvas bewerkt worden zodat het soepeler wordt en de kleur wat vervaagt." } },
+
+  { id:"stahlhelm", groep:"Kleding", naam:"Stahlhelm M40 / M42", nl:"Stalen helm met overtrek", minimaal:false,
+    tekst:"Stalen helm, hier gedragen met een overtrek van zeildoekstof en een rubberen band (Tarnband) om takken en gras in te steken. Staat niet in het adviesdocument: overleg eerst wat de groep gebruikt." },
 
   /* ---------------- Koppel ---------------- */
   { id:"koppel", groep:"Koppel & draagstel", naam:"Koppelriemen", nl:"Koppelriem", minimaal:true, variant:"var.40 · var.44",
@@ -612,6 +437,7 @@ const ITEMS = [
     $('#viewLabel').textContent = v ? 'Achteraanzicht' : 'Vooraanzicht';
   }
   $('#flipBtn').addEventListener('click', () => setFlip(!flipped));
+  $('#showBtn').addEventListener('click', () => { const on = stage.classList.toggle('show'); $('#showBtn').textContent = on ? 'Verberg klikvlakken' : 'Toon klikvlakken'; });
 
   let dragStart = null, dragged = false;
   stage.addEventListener('pointerdown', e => { dragStart = {x:e.clientX, a:angle}; dragged = false; });
